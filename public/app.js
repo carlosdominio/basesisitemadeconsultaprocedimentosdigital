@@ -93,7 +93,7 @@ async function showProcedures(clientId) {
     if (procedures) {
         procedures.forEach((proc, index) => {
             const li = document.createElement('li');
-            li.innerHTML = `${index + 1}. ${proc.procedure_text}`;
+            li.innerHTML = `${proc.procedure_text}`;
             li.dataset.id = proc.id; // Armazena o ID do BD
             li.dataset.index = index;
             li.addEventListener('click', () => {
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const procId = selectedLi.dataset.id;
-        const currentText = selectedLi.innerHTML.substring(3); // Since it may have HTML
+        const currentText = selectedLi.innerHTML; // Since it may have HTML
         showModal('Editar Procedimento', currentText, async (newText) => {
             if (newText !== currentText) {
                 const result = await fetchData(`${API_URL}/clients/${clientId}/procedures/${procId}`, {
