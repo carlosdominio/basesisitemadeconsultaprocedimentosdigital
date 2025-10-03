@@ -60,6 +60,7 @@ li.selected {
 
 #proceduresList li {
     margin-bottom: 15px;
+    background: none;
 }
 
 /* Modal */
