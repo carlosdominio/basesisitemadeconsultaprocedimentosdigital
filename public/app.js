@@ -9,6 +9,7 @@ const editProcedureBtn = document.getElementById('editProcedureBtn');
 const deleteProcedureBtn = document.getElementById('deleteProcedureBtn');
 const addClientBtn = document.getElementById('addClientBtn');
 const editClientBtn = document.getElementById('editClientBtn');
+const deleteClientBtn = document.getElementById('deleteClientBtn');
 const providerSelect = document.getElementById('providerSelect');
 const providerProceduresContainer = document.getElementById('providerProceduresContainer');
 const providerProceduresList = document.getElementById('providerProceduresList');
@@ -294,6 +295,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (clientSelect.value === clientId) {
                     showProcedures(clientId);
                 }
+            }
+        }
+    });
+
+    deleteClientBtn.addEventListener('click', async () => {
+        const clientId = clientSelect.value;
+        if (!clientId) {
+            alert('Selecione um cliente para remover.');
+            return;
+        }
+        if (confirm('Tem certeza que deseja remover este cliente?')) {
+            const result = await fetchData(`${API_URL}/clients/${clientId}`, {
+                method: 'DELETE'
+            });
+            if (result) {
+                populateClients();
+                clientSelect.value = '';
+                showProcedures('', '');
             }
         }
     });
