@@ -216,6 +216,11 @@ app.delete('/api/providers/:id', async (req, res) => {
 app.post('/api/clients', async (req, res) => {
     try {
         const { name } = req.body;
+        // Check if client with same name already exists
+        const existing = await pool.query("SELECT id FROM clients WHERE name = $1", [name]);
+        if (existing.rows.length > 0) {
+            return res.status(400).json({error: "Cliente com este nome já existe."});
+        }
         const result = await pool.query("INSERT INTO clients (name) VALUES ($1) RETURNING id", [name]);
         res.json({id: result.rows[0].id});
     } catch (err) {
