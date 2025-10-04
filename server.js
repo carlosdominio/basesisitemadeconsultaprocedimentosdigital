@@ -284,7 +284,7 @@ app.put('/api/clients/:id/procedures/:procId', async (req, res) => {
 });
 
 // Reorder client procedures
-app.put('/api/clients/:id/procedures/reorder', async (req, res) => {
+app.put('/api/clients/:id/reorder-procedures', async (req, res) => {
     try {
         const { ids } = req.body;
         for (let i = 0; i < ids.length; i++) {

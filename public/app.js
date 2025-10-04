@@ -132,7 +132,7 @@ proceduresList.addEventListener('drop', async (e) => {
     e.preventDefault();
     const clientId = clientSelect.value;
     const ids = Array.from(proceduresList.children).map(li => li.dataset.id);
-    await fetchData(`${API_URL}/clients/${clientId}/procedures/reorder`, {
+    await fetchData(`${API_URL}/clients/${clientId}/reorder-procedures`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ids})
