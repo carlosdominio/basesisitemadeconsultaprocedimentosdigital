@@ -283,16 +283,6 @@ app.put('/api/clients/:id/procedures/:procId', async (req, res) => {
     }
 });
 
-// Delete client procedure
-app.delete('/api/clients/:id/procedures/:procId', async (req, res) => {
-    try {
-        const result = await pool.query("DELETE FROM client_procedures WHERE id = $1 AND client_id = $2", [req.params.procId, req.params.id]);
-        res.json({changes: result.rowCount});
-    } catch (err) {
-        res.status(500).json({error: err.message});
-    }
-});
-
 // Reorder client procedures
 app.put('/api/clients/:id/procedures/reorder', async (req, res) => {
     try {
@@ -301,6 +291,16 @@ app.put('/api/clients/:id/procedures/reorder', async (req, res) => {
             await pool.query("UPDATE client_procedures SET order_index = $1 WHERE id = $2 AND client_id = $3", [i + 1, ids[i], req.params.id]);
         }
         res.json({message: 'Reordered successfully'});
+    } catch (err) {
+        res.status(500).json({error: err.message});
+    }
+});
+
+// Delete client procedure
+app.delete('/api/clients/:id/procedures/:procId', async (req, res) => {
+    try {
+        const result = await pool.query("DELETE FROM client_procedures WHERE id = $1 AND client_id = $2", [req.params.procId, req.params.id]);
+        res.json({changes: result.rowCount});
     } catch (err) {
         res.status(500).json({error: err.message});
     }
@@ -330,16 +330,6 @@ app.put('/api/providers/:id/procedures/:procId', async (req, res) => {
     }
 });
 
-// Delete provider procedure
-app.delete('/api/providers/:id/procedures/:procId', async (req, res) => {
-    try {
-        const result = await pool.query("DELETE FROM provider_procedures WHERE id = $1 AND provider_id = $2", [req.params.procId, req.params.id]);
-        res.json({changes: result.rowCount});
-    } catch (err) {
-        res.status(500).json({error: err.message});
-    }
-});
-
 // Reorder provider procedures
 app.put('/api/providers/:id/procedures/:sinistro/reorder', async (req, res) => {
     try {
@@ -348,6 +338,16 @@ app.put('/api/providers/:id/procedures/:sinistro/reorder', async (req, res) => {
             await pool.query("UPDATE provider_procedures SET order_index = $1 WHERE id = $2 AND provider_id = $3 AND sinistro_type = $4", [i + 1, ids[i], req.params.id, req.params.sinistro]);
         }
         res.json({message: 'Reordered successfully'});
+    } catch (err) {
+        res.status(500).json({error: err.message});
+    }
+});
+
+// Delete provider procedure
+app.delete('/api/providers/:id/procedures/:procId', async (req, res) => {
+    try {
+        const result = await pool.query("DELETE FROM provider_procedures WHERE id = $1 AND provider_id = $2", [req.params.procId, req.params.id]);
+        res.json({changes: result.rowCount});
     } catch (err) {
         res.status(500).json({error: err.message});
     }
@@ -377,16 +377,6 @@ app.put('/api/providers/:id/additional-procedures/:procId', async (req, res) => 
     }
 });
 
-// Delete additional provider procedure
-app.delete('/api/providers/:id/additional-procedures/:procId', async (req, res) => {
-    try {
-        const result = await pool.query("DELETE FROM additional_provider_procedures WHERE id = $1 AND provider_id = $2", [req.params.procId, req.params.id]);
-        res.json({changes: result.rowCount});
-    } catch (err) {
-        res.status(500).json({error: err.message});
-    }
-});
-
 // Reorder additional provider procedures
 app.put('/api/providers/:id/additional-procedures/:sinistro/reorder', async (req, res) => {
     try {
@@ -395,6 +385,16 @@ app.put('/api/providers/:id/additional-procedures/:sinistro/reorder', async (req
             await pool.query("UPDATE additional_provider_procedures SET order_index = $1 WHERE id = $2 AND provider_id = $3 AND sinistro_type = $4", [i + 1, ids[i], req.params.id, req.params.sinistro]);
         }
         res.json({message: 'Reordered successfully'});
+    } catch (err) {
+        res.status(500).json({error: err.message});
+    }
+});
+
+// Delete additional provider procedure
+app.delete('/api/providers/:id/additional-procedures/:procId', async (req, res) => {
+    try {
+        const result = await pool.query("DELETE FROM additional_provider_procedures WHERE id = $1 AND provider_id = $2", [req.params.procId, req.params.id]);
+        res.json({changes: result.rowCount});
     } catch (err) {
         res.status(500).json({error: err.message});
     }
