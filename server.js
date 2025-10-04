@@ -34,9 +34,9 @@ const pool = new Pool({
         await pool.query(`CREATE TABLE IF NOT EXISTS client_procedures (
             id SERIAL PRIMARY KEY,
             client_id INTEGER REFERENCES clients (id),
-            procedure_text TEXT,
-            order_index INTEGER DEFAULT 0
+            procedure_text TEXT
         )`);
+        await pool.query(`ALTER TABLE client_procedures ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0`);
 
         await pool.query(`CREATE TABLE IF NOT EXISTS providers (
             id SERIAL PRIMARY KEY,
@@ -48,17 +48,17 @@ const pool = new Pool({
             id SERIAL PRIMARY KEY,
             provider_id INTEGER REFERENCES providers (id),
             sinistro_type TEXT,
-            procedure_text TEXT,
-            order_index INTEGER DEFAULT 0
+            procedure_text TEXT
         )`);
+        await pool.query(`ALTER TABLE provider_procedures ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0`);
 
         await pool.query(`CREATE TABLE IF NOT EXISTS additional_provider_procedures (
             id SERIAL PRIMARY KEY,
             provider_id INTEGER REFERENCES providers (id),
             sinistro_type TEXT,
-            procedure_text TEXT,
-            order_index INTEGER DEFAULT 0
+            procedure_text TEXT
         )`);
+        await pool.query(`ALTER TABLE additional_provider_procedures ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0`);
 
         await pool.query(`CREATE TABLE IF NOT EXISTS sinistro_procedures (
             id SERIAL PRIMARY KEY,
