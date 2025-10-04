@@ -97,15 +97,61 @@ async function showProcedures(clientId) {
             li.innerHTML = `${proc.procedure_text}`;
             li.dataset.id = proc.id; // Armazena o ID do BD
             li.dataset.index = index;
+            li.draggable = true;
             li.addEventListener('click', () => {
                 // Remove selected from others
                 document.querySelectorAll('#proceduresList li').forEach(el => el.classList.remove('selected'));
                 li.classList.add('selected');
             });
+            li.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', proc.id);
+                li.classList.add('dragging');
+            });
+            li.addEventListener('dragend', () => {
+                li.classList.remove('dragging');
+            });
             proceduresList.appendChild(li);
         });
         proceduresContainer.style.display = 'block';
     }
+}
+
+// Drag and drop for proceduresList
+proceduresList.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const dragging = document.querySelector('.dragging');
+    const afterElement = getDragAfterElement(proceduresList, e.clientY);
+    if (afterElement == null) {
+        proceduresList.appendChild(dragging);
+    } else {
+        proceduresList.insertBefore(dragging, afterElement);
+    }
+});
+
+proceduresList.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    const clientId = clientSelect.value;
+    const ids = Array.from(proceduresList.children).map(li => li.dataset.id);
+    await fetchData(`${API_URL}/clients/${clientId}/procedures/reorder`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ids})
+    });
+    // Refresh to show updated order
+    showProcedures(clientId);
+});
+
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('li:not(.dragging)')];
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
 async function showProviderProcedures(providerId, sinistroType) {

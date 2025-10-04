@@ -58,6 +58,10 @@ li.selected {
     border: 2px solid #ff0000;
 }
 
+li.dragging {
+    opacity: 0.5;
+}
+
 #proceduresList li {
     margin-bottom: 15px;
     background: none;

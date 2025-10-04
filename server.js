@@ -34,7 +34,8 @@ const pool = new Pool({
         await pool.query(`CREATE TABLE IF NOT EXISTS client_procedures (
             id SERIAL PRIMARY KEY,
             client_id INTEGER REFERENCES clients (id),
-            procedure_text TEXT
+            procedure_text TEXT,
+            order_index INTEGER DEFAULT 0
         )`);
 
         await pool.query(`CREATE TABLE IF NOT EXISTS providers (
@@ -47,14 +48,16 @@ const pool = new Pool({
             id SERIAL PRIMARY KEY,
             provider_id INTEGER REFERENCES providers (id),
             sinistro_type TEXT,
-            procedure_text TEXT
+            procedure_text TEXT,
+            order_index INTEGER DEFAULT 0
         )`);
 
         await pool.query(`CREATE TABLE IF NOT EXISTS additional_provider_procedures (
             id SERIAL PRIMARY KEY,
             provider_id INTEGER REFERENCES providers (id),
             sinistro_type TEXT,
-            procedure_text TEXT
+            procedure_text TEXT,
+            order_index INTEGER DEFAULT 0
         )`);
 
         await pool.query(`CREATE TABLE IF NOT EXISTS sinistro_procedures (
@@ -110,21 +113,27 @@ async function insertDefaultData() {
 
     for (const client of clients) {
         await pool.query("INSERT INTO clients (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING", [client.id, client.name]);
+        let orderIndex = 1;
         for (const proc of client.procedures) {
-            await pool.query("INSERT INTO client_procedures (client_id, procedure_text) VALUES ($1, $2)", [client.id, proc]);
+            await pool.query("INSERT INTO client_procedures (client_id, procedure_text, order_index) VALUES ($1, $2, $3) ON CONFLICT (client_id, procedure_text) DO NOTHING", [client.id, proc, orderIndex]);
+            orderIndex++;
         }
     }
 
     for (const provider of providers) {
         await pool.query("INSERT INTO providers (id, name, image) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING", [provider.id, provider.name, provider.image]);
         for (const sinistro in provider.procedures) {
+            let orderIndex = 1;
             for (const proc of provider.procedures[sinistro]) {
-                await pool.query("INSERT INTO provider_procedures (provider_id, sinistro_type, procedure_text) VALUES ($1, $2, $3)", [provider.id, sinistro, proc]);
+                await pool.query("INSERT INTO provider_procedures (provider_id, sinistro_type, procedure_text, order_index) VALUES ($1, $2, $3, $4) ON CONFLICT (provider_id, sinistro_type, procedure_text) DO NOTHING", [provider.id, sinistro, proc, orderIndex]);
+                orderIndex++;
             }
         }
         for (const sinistro in provider.additionalProcedures) {
+            let orderIndex = 1;
             for (const proc of provider.additionalProcedures[sinistro]) {
-                await pool.query("INSERT INTO additional_provider_procedures (provider_id, sinistro_type, procedure_text) VALUES ($1, $2, $3)", [provider.id, sinistro, proc]);
+                await pool.query("INSERT INTO additional_provider_procedures (provider_id, sinistro_type, procedure_text, order_index) VALUES ($1, $2, $3, $4) ON CONFLICT (provider_id, sinistro_type, procedure_text) DO NOTHING", [provider.id, sinistro, proc, orderIndex]);
+                orderIndex++;
             }
         }
     }
@@ -146,7 +155,7 @@ app.get('/api/clients', async (req, res) => {
 
 app.get('/api/clients/:id/procedures', async (req, res) => {
     try {
-        const result = await pool.query("SELECT * FROM client_procedures WHERE client_id = $1", [req.params.id]);
+        const result = await pool.query("SELECT * FROM client_procedures WHERE client_id = $1 ORDER BY order_index", [req.params.id]);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({error: err.message});
@@ -164,7 +173,7 @@ app.get('/api/providers', async (req, res) => {
 
 app.get('/api/providers/:id/procedures/:sinistro', async (req, res) => {
     try {
-        const result = await pool.query("SELECT * FROM provider_procedures WHERE provider_id = $1 AND sinistro_type = $2", [req.params.id, req.params.sinistro]);
+        const result = await pool.query("SELECT * FROM provider_procedures WHERE provider_id = $1 AND sinistro_type = $2 ORDER BY order_index", [req.params.id, req.params.sinistro]);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({error: err.message});
@@ -173,7 +182,7 @@ app.get('/api/providers/:id/procedures/:sinistro', async (req, res) => {
 
 app.get('/api/providers/:id/additional-procedures/:sinistro', async (req, res) => {
     try {
-        const result = await pool.query("SELECT * FROM additional_provider_procedures WHERE provider_id = $1 AND sinistro_type = $2", [req.params.id, req.params.sinistro]);
+        const result = await pool.query("SELECT * FROM additional_provider_procedures WHERE provider_id = $1 AND sinistro_type = $2 ORDER BY order_index", [req.params.id, req.params.sinistro]);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({error: err.message});
@@ -254,7 +263,9 @@ app.delete('/api/clients/:id', async (req, res) => {
 app.post('/api/clients/:id/procedures', async (req, res) => {
     try {
         const { procedure_text } = req.body;
-        const result = await pool.query("INSERT INTO client_procedures (client_id, procedure_text) VALUES ($1, $2) RETURNING id", [req.params.id, procedure_text]);
+        const maxOrder = await pool.query("SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM client_procedures WHERE client_id = $1", [req.params.id]);
+        const orderIndex = maxOrder.rows[0].next_order;
+        const result = await pool.query("INSERT INTO client_procedures (client_id, procedure_text, order_index) VALUES ($1, $2, $3) RETURNING id", [req.params.id, procedure_text, orderIndex]);
         res.json({id: result.rows[0].id});
     } catch (err) {
         res.status(500).json({error: err.message});
@@ -282,11 +293,26 @@ app.delete('/api/clients/:id/procedures/:procId', async (req, res) => {
     }
 });
 
+// Reorder client procedures
+app.put('/api/clients/:id/procedures/reorder', async (req, res) => {
+    try {
+        const { ids } = req.body;
+        for (let i = 0; i < ids.length; i++) {
+            await pool.query("UPDATE client_procedures SET order_index = $1 WHERE id = $2 AND client_id = $3", [i + 1, ids[i], req.params.id]);
+        }
+        res.json({message: 'Reordered successfully'});
+    } catch (err) {
+        res.status(500).json({error: err.message});
+    }
+});
+
 // Add provider procedure
 app.post('/api/providers/:id/procedures/:sinistro', async (req, res) => {
     try {
         const { procedure_text } = req.body;
-        const result = await pool.query("INSERT INTO provider_procedures (provider_id, sinistro_type, procedure_text) VALUES ($1, $2, $3) RETURNING id", [req.params.id, req.params.sinistro, procedure_text]);
+        const maxOrder = await pool.query("SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM provider_procedures WHERE provider_id = $1 AND sinistro_type = $2", [req.params.id, req.params.sinistro]);
+        const orderIndex = maxOrder.rows[0].next_order;
+        const result = await pool.query("INSERT INTO provider_procedures (provider_id, sinistro_type, procedure_text, order_index) VALUES ($1, $2, $3, $4) RETURNING id", [req.params.id, req.params.sinistro, procedure_text, orderIndex]);
         res.json({id: result.rows[0].id});
     } catch (err) {
         res.status(500).json({error: err.message});
@@ -314,11 +340,26 @@ app.delete('/api/providers/:id/procedures/:procId', async (req, res) => {
     }
 });
 
+// Reorder provider procedures
+app.put('/api/providers/:id/procedures/:sinistro/reorder', async (req, res) => {
+    try {
+        const { ids } = req.body;
+        for (let i = 0; i < ids.length; i++) {
+            await pool.query("UPDATE provider_procedures SET order_index = $1 WHERE id = $2 AND provider_id = $3 AND sinistro_type = $4", [i + 1, ids[i], req.params.id, req.params.sinistro]);
+        }
+        res.json({message: 'Reordered successfully'});
+    } catch (err) {
+        res.status(500).json({error: err.message});
+    }
+});
+
 // Add additional provider procedure
 app.post('/api/providers/:id/additional-procedures/:sinistro', async (req, res) => {
     try {
         const { procedure_text } = req.body;
-        const result = await pool.query("INSERT INTO additional_provider_procedures (provider_id, sinistro_type, procedure_text) VALUES ($1, $2, $3) RETURNING id", [req.params.id, req.params.sinistro, procedure_text]);
+        const maxOrder = await pool.query("SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM additional_provider_procedures WHERE provider_id = $1 AND sinistro_type = $2", [req.params.id, req.params.sinistro]);
+        const orderIndex = maxOrder.rows[0].next_order;
+        const result = await pool.query("INSERT INTO additional_provider_procedures (provider_id, sinistro_type, procedure_text, order_index) VALUES ($1, $2, $3, $4) RETURNING id", [req.params.id, req.params.sinistro, procedure_text, orderIndex]);
         res.json({id: result.rows[0].id});
     } catch (err) {
         res.status(500).json({error: err.message});
@@ -341,6 +382,19 @@ app.delete('/api/providers/:id/additional-procedures/:procId', async (req, res) 
     try {
         const result = await pool.query("DELETE FROM additional_provider_procedures WHERE id = $1 AND provider_id = $2", [req.params.procId, req.params.id]);
         res.json({changes: result.rowCount});
+    } catch (err) {
+        res.status(500).json({error: err.message});
+    }
+});
+
+// Reorder additional provider procedures
+app.put('/api/providers/:id/additional-procedures/:sinistro/reorder', async (req, res) => {
+    try {
+        const { ids } = req.body;
+        for (let i = 0; i < ids.length; i++) {
+            await pool.query("UPDATE additional_provider_procedures SET order_index = $1 WHERE id = $2 AND provider_id = $3 AND sinistro_type = $4", [i + 1, ids[i], req.params.id, req.params.sinistro]);
+        }
+        res.json({message: 'Reordered successfully'});
     } catch (err) {
         res.status(500).json({error: err.message});
     }
