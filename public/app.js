@@ -205,6 +205,7 @@ function showModal(title, initialValue, callback) {
     modalTitle.textContent = title;
     modalInput.innerHTML = initialValue || '';
     modal.style.display = 'block';
+    modalInput.focus();
     modalSave.onclick = () => {
         const value = modalInput.innerHTML.trim();
         if (value) {
