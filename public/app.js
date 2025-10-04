@@ -265,13 +265,21 @@ document.addEventListener('DOMContentLoaded', () => {
     addClientBtn.addEventListener('click', async () => {
         const name = prompt('Nome do cliente:');
         if (name) {
-            const result = await fetchData(`${API_URL}/clients`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({name})
-            });
-            if (result) {
+            try {
+                const response = await fetch(`${API_URL}/clients`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name})
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    alert(errorData.error || 'Erro ao adicionar cliente.');
+                    return;
+                }
+                const result = await response.json();
                 populateClients();
+            } catch (error) {
+                alert('Erro ao comunicar com o servidor.');
             }
         }
     });
