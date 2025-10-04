@@ -67,6 +67,13 @@ const pool = new Pool({
         const result = await pool.query("SELECT COUNT(*) as count FROM clients");
         if (parseInt(result.rows[0].count) === 0) {
             await insertDefaultData();
+            // Update sequences to avoid duplicate key errors
+            await pool.query("SELECT setval('clients_id_seq', (SELECT MAX(id) FROM clients))");
+            await pool.query("SELECT setval('client_procedures_id_seq', (SELECT MAX(id) FROM client_procedures))");
+            await pool.query("SELECT setval('providers_id_seq', (SELECT MAX(id) FROM providers))");
+            await pool.query("SELECT setval('provider_procedures_id_seq', (SELECT MAX(id) FROM provider_procedures))");
+            await pool.query("SELECT setval('additional_provider_procedures_id_seq', (SELECT MAX(id) FROM additional_provider_procedures))");
+            await pool.query("SELECT setval('sinistro_procedures_id_seq', (SELECT MAX(id) FROM sinistro_procedures))");
         }
     } catch (err) {
         console.error('Error initializing database:', err);
