@@ -101,12 +101,12 @@ async function showProcedures(clientId) {
     if (procedures) {
         procedures.forEach((proc, index) => {
             const li = document.createElement('li');
-            let content = proc.procedure_text;
+            let content = `<span class="drag-handle" data-proc-id="${proc.id}" title="Arrastar para reordenar">⋮⋮</span> `;
+            content += proc.procedure_text;
             if (proc.image_data) {
                 content += `<br><img src="${proc.image_data}" alt="Imagem do procedimento" style="max-width: 100%; height: auto;">`;
             }
             content += ` <span class="edit-icon" data-proc-id="${proc.id}" title="Editar procedimento">✏️</span>`;
-            content += ` <span class="drag-handle" title="Arrastar para reordenar">⋮⋮</span>`;
             li.innerHTML = content;
             li.dataset.id = proc.id; // Armazena o ID do BD
             li.dataset.index = index;
