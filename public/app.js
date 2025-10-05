@@ -106,11 +106,16 @@ async function showProcedures(clientId) {
             if (proc.image_data) {
                 content += `<br><img src="${proc.image_data}" alt="Imagem do procedimento" style="max-width: 100%; height: auto;">`;
             }
+            content += ` <span class="edit-icon" data-proc-id="${proc.id}" title="Editar procedimento">✏️</span>`;
             li.innerHTML = content;
             li.dataset.id = proc.id; // Armazena o ID do BD
             li.dataset.index = index;
             li.draggable = true;
-            li.addEventListener('click', () => {
+            li.addEventListener('click', (e) => {
+                // Se clicou no ícone de edição, não seleciona o item
+                if (e.target.classList.contains('edit-icon')) {
+                    return;
+                }
                 // Remove selected from others
                 document.querySelectorAll('#proceduresList li').forEach(el => el.classList.remove('selected'));
                 li.classList.add('selected');
@@ -350,6 +355,30 @@ document.addEventListener('DOMContentLoaded', () => {
             imageModal.style.display = "block";
             imageModalImg.src = e.target.src;
             imageCaption.innerHTML = "Imagem do procedimento";
+        }
+
+        // Event delegation for edit icons in procedures
+        if (e.target.classList.contains('edit-icon') && e.target.closest('#proceduresList')) {
+            const procId = e.target.dataset.procId;
+            const clientId = clientSelect.value;
+            if (!procId || !clientId) return;
+
+            // Find the procedure text from the DOM
+            const li = e.target.closest('li');
+            const currentText = li.innerHTML.replace(/ <span class="edit-icon"[^>]*>.*?<\/span>$/, ''); // Remove the edit icon from text
+
+            showModal('Editar Procedimento', currentText, async (newText) => {
+                if (newText !== currentText) {
+                    const result = await fetchData(`${API_URL}/clients/${clientId}/procedures/${procId}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({procedure_text: newText})
+                    });
+                    if (result) {
+                        showProcedures(clientId);
+                    }
+                }
+            });
         }
     });
 
