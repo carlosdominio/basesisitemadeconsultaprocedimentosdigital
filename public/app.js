@@ -110,6 +110,7 @@ async function showProcedures(clientId) {
             li.innerHTML = content;
             li.dataset.id = proc.id; // Armazena o ID do BD
             li.dataset.index = index;
+            li.draggable = true; // Sempre draggable
             li.addEventListener('click', (e) => {
                 // Se clicou no ícone de edição ou handle, não seleciona o item
                 if (e.target.classList.contains('edit-icon') || e.target.classList.contains('drag-handle')) {
@@ -118,6 +119,18 @@ async function showProcedures(clientId) {
                 // Remove selected from others
                 document.querySelectorAll('#proceduresList li').forEach(el => el.classList.remove('selected'));
                 li.classList.add('selected');
+            });
+            li.addEventListener('dragstart', (e) => {
+                // Só permite drag se iniciou no handle
+                if (!e.target.classList.contains('drag-handle')) {
+                    e.preventDefault();
+                    return;
+                }
+                e.dataTransfer.setData('text/plain', proc.id);
+                li.classList.add('dragging');
+            });
+            li.addEventListener('dragend', () => {
+                li.classList.remove('dragging');
             });
             proceduresList.appendChild(li);
         });
@@ -375,19 +388,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Event delegation for drag handles in procedures
-        if (e.target.classList.contains('drag-handle') && e.target.closest('#proceduresList')) {
-            const li = e.target.closest('li');
-            li.draggable = true;
-            li.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', li.dataset.id);
-                li.classList.add('dragging');
-            });
-            li.addEventListener('dragend', () => {
-                li.classList.remove('dragging');
-                li.draggable = false; // Reset draggable after drag
-            });
-        }
     });
 
 
