@@ -67,6 +67,13 @@ li.dragging {
     background: none;
 }
 
+#proceduresList li img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 5px 0;
+}
+
 /* Modal */
 .modal {
     display: none;
