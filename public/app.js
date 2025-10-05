@@ -101,7 +101,8 @@ async function showProcedures(clientId) {
     if (procedures) {
         procedures.forEach((proc, index) => {
             const li = document.createElement('li');
-            let content = `<span class="drag-handle" data-proc-id="${proc.id}" title="Arrastar para reordenar">⋮⋮</span> `;
+            let content = `<span class="move-up-btn" data-proc-id="${proc.id}" title="Mover para cima">↑</span>`;
+            content += `<span class="move-down-btn" data-proc-id="${proc.id}" title="Mover para baixo">↓</span> `;
             content += proc.procedure_text;
             if (proc.image_data) {
                 content += `<br><img src="${proc.image_data}" alt="Imagem do procedimento" style="max-width: 100%; height: auto;">`;
@@ -110,27 +111,14 @@ async function showProcedures(clientId) {
             li.innerHTML = content;
             li.dataset.id = proc.id; // Armazena o ID do BD
             li.dataset.index = index;
-            li.draggable = true; // Sempre draggable
             li.addEventListener('click', (e) => {
-                // Se clicou no ícone de edição ou handle, não seleciona o item
-                if (e.target.classList.contains('edit-icon') || e.target.classList.contains('drag-handle')) {
+                // Se clicou nos botões de mover ou editar, não seleciona o item
+                if (e.target.classList.contains('edit-icon') || e.target.classList.contains('move-up-btn') || e.target.classList.contains('move-down-btn')) {
                     return;
                 }
                 // Remove selected from others
                 document.querySelectorAll('#proceduresList li').forEach(el => el.classList.remove('selected'));
                 li.classList.add('selected');
-            });
-            li.addEventListener('dragstart', (e) => {
-                // Só permite drag se iniciou no handle
-                if (!e.target.classList.contains('drag-handle')) {
-                    e.preventDefault();
-                    return;
-                }
-                e.dataTransfer.setData('text/plain', proc.id);
-                li.classList.add('dragging');
-            });
-            li.addEventListener('dragend', () => {
-                li.classList.remove('dragging');
             });
             proceduresList.appendChild(li);
         });
@@ -138,45 +126,7 @@ async function showProcedures(clientId) {
     }
 }
 
-// Drag and drop for proceduresList - only when dragging by handle
-proceduresList.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    const dragging = document.querySelector('.dragging');
-    if (dragging) {
-        const afterElement = getDragAfterElement(proceduresList, e.clientY);
-        if (afterElement == null) {
-            proceduresList.appendChild(dragging);
-        } else {
-            proceduresList.insertBefore(dragging, afterElement);
-        }
-    }
-});
 
-proceduresList.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    const clientId = clientSelect.value;
-    const ids = Array.from(proceduresList.children).map(li => li.dataset.id);
-    await fetchData(`${API_URL}/clients/${clientId}/reorder-procedures`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ids})
-    });
-    // Refresh to show updated order
-    showProcedures(clientId);
-});
-
-function getDragAfterElement(container, y) {
-    const draggableElements = [...container.querySelectorAll('li:not(.dragging)')];
-    return draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
-        if (offset < 0 && offset > closest.offset) {
-            return { offset: offset, element: child };
-        } else {
-            return closest;
-        }
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
 
 async function showProviderProcedures(providerId, sinistroType) {
     if (!providerId || !sinistroType) {
@@ -364,6 +314,36 @@ document.addEventListener('DOMContentLoaded', () => {
             imageCaption.innerHTML = "Imagem do procedimento";
         }
 
+        // Event delegation for move up buttons in procedures
+        if (e.target.classList.contains('move-up-btn') && e.target.closest('#proceduresList')) {
+            const procId = e.target.dataset.procId;
+            const clientId = clientSelect.value;
+            if (!procId || !clientId) return;
+
+            fetchData(`${API_URL}/clients/${clientId}/procedures/${procId}/move-up`, {
+                method: 'PUT'
+            }).then(result => {
+                if (result) {
+                    showProcedures(clientId);
+                }
+            });
+        }
+
+        // Event delegation for move down buttons in procedures
+        if (e.target.classList.contains('move-down-btn') && e.target.closest('#proceduresList')) {
+            const procId = e.target.dataset.procId;
+            const clientId = clientSelect.value;
+            if (!procId || !clientId) return;
+
+            fetchData(`${API_URL}/clients/${clientId}/procedures/${procId}/move-down`, {
+                method: 'PUT'
+            }).then(result => {
+                if (result) {
+                    showProcedures(clientId);
+                }
+            });
+        }
+
         // Event delegation for edit icons in procedures
         if (e.target.classList.contains('edit-icon') && e.target.closest('#proceduresList')) {
             const procId = e.target.dataset.procId;
@@ -372,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Find the procedure text from the DOM
             const li = e.target.closest('li');
-            const currentText = li.innerHTML.replace(/ <span class="(edit-icon|drag-handle)"[^>]*>.*?<\/span>/g, ''); // Remove icons from text
+            const currentText = li.innerHTML.replace(/ <span class="(edit-icon|move-up-btn|move-down-btn)"[^>]*>.*?<\/span>/g, ''); // Remove icons from text
 
             showModal('Editar Procedimento', currentText, async (newText) => {
                 if (newText !== currentText) {

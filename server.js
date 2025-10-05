@@ -404,4 +404,73 @@ app.delete('/api/providers/:id/additional-procedures/:procId', async (req, res) 
     }
 });
 
+// Move procedure up
+app.put('/api/clients/:clientId/procedures/:procId/move-up', async (req, res) => {
+    try {
+        const { clientId, procId } = req.params;
+
+        // Get current procedure order_index
+        const currentProc = await pool.query("SELECT order_index FROM client_procedures WHERE id = $1 AND client_id = $2", [procId, clientId]);
+        if (currentProc.rows.length === 0) {
+            return res.status(404).json({error: 'Procedure not found'});
+        }
+
+        const currentOrder = currentProc.rows[0].order_index;
+        if (currentOrder === 0) {
+            return res.json({message: 'Already at the top'});
+        }
+
+        // Swap with the procedure above
+        await pool.query(`
+            UPDATE client_procedures
+            SET order_index = CASE
+                WHEN id = $1 THEN order_index - 1
+                WHEN order_index = $2 THEN order_index + 1
+            END
+            WHERE client_id = $3 AND order_index IN ($2, $4)
+        `, [procId, currentOrder - 1, clientId, currentOrder]);
+
+        res.json({message: 'Procedure moved up'});
+    } catch (err) {
+        res.status(500).json({error: err.message});
+    }
+});
+
+// Move procedure down
+app.put('/api/clients/:clientId/procedures/:procId/move-down', async (req, res) => {
+    try {
+        const { clientId, procId } = req.params;
+
+        // Get current procedure order_index
+        const currentProc = await pool.query("SELECT order_index FROM client_procedures WHERE id = $1 AND client_id = $2", [procId, clientId]);
+        if (currentProc.rows.length === 0) {
+            return res.status(404).json({error: 'Procedure not found'});
+        }
+
+        const currentOrder = currentProc.rows[0].order_index;
+
+        // Get max order_index for this client
+        const maxOrder = await pool.query("SELECT MAX(order_index) as max_order FROM client_procedures WHERE client_id = $1", [clientId]);
+        const maxOrderValue = maxOrder.rows[0].max_order;
+
+        if (currentOrder >= maxOrderValue) {
+            return res.json({message: 'Already at the bottom'});
+        }
+
+        // Swap with the procedure below
+        await pool.query(`
+            UPDATE client_procedures
+            SET order_index = CASE
+                WHEN id = $1 THEN order_index + 1
+                WHEN order_index = $2 THEN order_index - 1
+            END
+            WHERE client_id = $3 AND order_index IN ($4, $2)
+        `, [procId, currentOrder + 1, clientId, currentOrder]);
+
+        res.json({message: 'Procedure moved down'});
+    } catch (err) {
+        res.status(500).json({error: err.message});
+    }
+});
+
 module.exports = app;
