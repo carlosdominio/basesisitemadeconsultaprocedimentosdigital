@@ -39,6 +39,7 @@ const boldBtn = document.getElementById('boldBtn');
 const italicBtn = document.getElementById('italicBtn');
 const underlineBtn = document.getElementById('underlineBtn');
 const imageBtn = document.getElementById('imageBtn');
+const imageInput = document.getElementById('imageInput');
 const fontSizeSelect = document.getElementById('fontSizeSelect');
 const colorPicker = document.getElementById('colorPicker');
 
@@ -101,7 +102,11 @@ async function showProcedures(clientId) {
     if (procedures) {
         procedures.forEach((proc, index) => {
             const li = document.createElement('li');
-            li.innerHTML = `${proc.procedure_text}`;
+            let content = proc.procedure_text;
+            if (proc.image_data) {
+                content += `<br><img src="${proc.image_data}" alt="Imagem do procedimento" style="max-width: 100%; height: auto;">`;
+            }
+            li.innerHTML = content;
             li.dataset.id = proc.id; // Armazena o ID do BD
             li.dataset.index = index;
             li.draggable = true;
@@ -233,9 +238,18 @@ boldBtn.addEventListener('click', () => document.execCommand('bold'));
 italicBtn.addEventListener('click', () => document.execCommand('italic'));
 underlineBtn.addEventListener('click', () => document.execCommand('underline'));
 imageBtn.addEventListener('click', () => {
-    const url = prompt('Digite a URL da imagem:');
-    if (url) {
-        document.execCommand('insertImage', false, url);
+    imageInput.click();
+});
+
+imageInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const base64String = event.target.result;
+            document.execCommand('insertImage', false, base64String);
+        };
+        reader.readAsDataURL(file);
     }
 });
 fontSizeSelect.addEventListener('change', () => document.execCommand('fontSize', false, fontSizeSelect.value));

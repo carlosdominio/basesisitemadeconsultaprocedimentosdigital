@@ -35,6 +35,7 @@ const pool = new Pool({
             id SERIAL PRIMARY KEY,
             client_id INTEGER REFERENCES clients (id),
             procedure_text TEXT,
+            image_data TEXT,
             order_index INTEGER DEFAULT 0
         )`);
 
@@ -49,6 +50,7 @@ const pool = new Pool({
             provider_id INTEGER REFERENCES providers (id),
             sinistro_type TEXT,
             procedure_text TEXT,
+            image_data TEXT,
             order_index INTEGER DEFAULT 0
         )`);
 
@@ -57,6 +59,7 @@ const pool = new Pool({
             provider_id INTEGER REFERENCES providers (id),
             sinistro_type TEXT,
             procedure_text TEXT,
+            image_data TEXT,
             order_index INTEGER DEFAULT 0
         )`);
 
