@@ -37,6 +37,7 @@ const close = document.getElementsByClassName('close')[0];
 const boldBtn = document.getElementById('boldBtn');
 const italicBtn = document.getElementById('italicBtn');
 const underlineBtn = document.getElementById('underlineBtn');
+const imageBtn = document.getElementById('imageBtn');
 const fontSizeSelect = document.getElementById('fontSizeSelect');
 const colorPicker = document.getElementById('colorPicker');
 
@@ -177,6 +178,12 @@ function showModal(title, initialValue, callback) {
 boldBtn.addEventListener('click', () => document.execCommand('bold'));
 italicBtn.addEventListener('click', () => document.execCommand('italic'));
 underlineBtn.addEventListener('click', () => document.execCommand('underline'));
+imageBtn.addEventListener('click', () => {
+    const url = prompt('Digite a URL da imagem:');
+    if (url) {
+        document.execCommand('insertImage', false, url);
+    }
+});
 fontSizeSelect.addEventListener('change', () => document.execCommand('fontSize', false, fontSizeSelect.value));
 colorPicker.addEventListener('change', () => document.execCommand('foreColor', false, colorPicker.value));
 
