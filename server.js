@@ -33,11 +33,6 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
 });
 
 // Database
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
-
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -61,6 +56,11 @@ const upload = multer({
       cb(new Error('Only image files are allowed!'), false);
     }
   }
+});
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
 // Initialize database
