@@ -42,6 +42,12 @@ const imageBtn = document.getElementById('imageBtn');
 const fontSizeSelect = document.getElementById('fontSizeSelect');
 const colorPicker = document.getElementById('colorPicker');
 
+// Image modal elements
+const imageModal = document.getElementById('imageModal');
+const imageModalImg = document.getElementById('imageModalImg');
+const imageCaption = document.getElementById('imageCaption');
+const imageClose = document.getElementsByClassName('image-close')[0];
+
 // --- Funções de Carregamento de Dados (Fetch) ---
 
 async function fetchData(url, options = {}) {
@@ -273,6 +279,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 showProcedures(clientId);
             }
         });
+    });
+    
+    // Image modal functionality
+    let scale = 1;
+    let panning = false;
+    let pointX = 0;
+    let pointY = 0;
+    let start = { x: 0, y: 0 };
+    
+    function setTransform() {
+        imageModalImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+    }
+    
+    imageModalImg.onmousedown = function(e) {
+        e.preventDefault();
+        panning = true;
+        start = { x: e.clientX - pointX, y: e.clientY - pointY };
+        imageModalImg.style.cursor = 'grabbing';
+    };
+    
+    document.onmouseup = function() {
+        panning = false;
+        imageModalImg.style.cursor = 'grab';
+    };
+    
+    document.onmousemove = function(e) {
+        if (!panning) return;
+        pointX = (e.clientX - start.x);
+        pointY = (e.clientY - start.y);
+        setTransform();
+    };
+    
+    imageModalImg.onwheel = function(e) {
+        e.preventDefault();
+        let xs = (e.clientX - pointX) / scale;
+        let ys = (e.clientY - pointY) / scale;
+        let delta = (e.wheelDelta ? e.wheelDelta : -e.deltaY);
+        (delta > 0) ? (scale *= 1.2) : (scale /= 1.2);
+        pointX = e.clientX - xs * scale;
+        pointY = e.clientY - ys * scale;
+        setTransform();
+    };
+    
+    imageClose.onclick = function() {
+        imageModal.style.display = "none";
+        scale = 1;
+        pointX = 0;
+        pointY = 0;
+        setTransform();
+    };
+    
+    // Event delegation for images in procedures
+    document.addEventListener('click', function(e) {
+        if (e.target.tagName === 'IMG' && e.target.closest('#proceduresList')) {
+            imageModal.style.display = "block";
+            imageModalImg.src = e.target.src;
+            imageCaption.innerHTML = "Imagem do procedimento";
+        }
     });
 
     editProcedureBtn.addEventListener('click', async () => {
