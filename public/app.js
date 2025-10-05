@@ -39,6 +39,7 @@ const boldBtn = document.getElementById('boldBtn');
 const italicBtn = document.getElementById('italicBtn');
 const underlineBtn = document.getElementById('underlineBtn');
 const imageBtn = document.getElementById('imageBtn');
+const imageInput = document.getElementById('imageInput');
 const fontSizeSelect = document.getElementById('fontSizeSelect');
 const colorPicker = document.getElementById('colorPicker');
 
@@ -233,9 +234,32 @@ boldBtn.addEventListener('click', () => document.execCommand('bold'));
 italicBtn.addEventListener('click', () => document.execCommand('italic'));
 underlineBtn.addEventListener('click', () => document.execCommand('underline'));
 imageBtn.addEventListener('click', () => {
-    const url = prompt('Digite a URL da imagem:');
-    if (url) {
-        document.execCommand('insertImage', false, url);
+    imageInput.click();
+});
+
+imageInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const response = await fetch(`${API_URL}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert(errorData.error || 'Erro ao fazer upload da imagem.');
+                return;
+            }
+
+            const result = await response.json();
+            document.execCommand('insertImage', false, result.imageUrl);
+        } catch (error) {
+            alert('Erro ao comunicar com o servidor.');
+        }
     }
 });
 fontSizeSelect.addEventListener('change', () => document.execCommand('fontSize', false, fontSizeSelect.value));
