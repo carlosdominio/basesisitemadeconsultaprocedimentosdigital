@@ -106,25 +106,18 @@ async function showProcedures(clientId) {
                 content += `<br><img src="${proc.image_data}" alt="Imagem do procedimento" style="max-width: 100%; height: auto;">`;
             }
             content += ` <span class="edit-icon" data-proc-id="${proc.id}" title="Editar procedimento">✏️</span>`;
+            content += ` <span class="drag-handle" title="Arrastar para reordenar">⋮⋮</span>`;
             li.innerHTML = content;
             li.dataset.id = proc.id; // Armazena o ID do BD
             li.dataset.index = index;
-            li.draggable = true;
             li.addEventListener('click', (e) => {
-                // Se clicou no ícone de edição, não seleciona o item
-                if (e.target.classList.contains('edit-icon')) {
+                // Se clicou no ícone de edição ou handle, não seleciona o item
+                if (e.target.classList.contains('edit-icon') || e.target.classList.contains('drag-handle')) {
                     return;
                 }
                 // Remove selected from others
                 document.querySelectorAll('#proceduresList li').forEach(el => el.classList.remove('selected'));
                 li.classList.add('selected');
-            });
-            li.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', proc.id);
-                li.classList.add('dragging');
-            });
-            li.addEventListener('dragend', () => {
-                li.classList.remove('dragging');
             });
             proceduresList.appendChild(li);
         });
@@ -132,15 +125,17 @@ async function showProcedures(clientId) {
     }
 }
 
-// Drag and drop for proceduresList
+// Drag and drop for proceduresList - only when dragging by handle
 proceduresList.addEventListener('dragover', (e) => {
     e.preventDefault();
     const dragging = document.querySelector('.dragging');
-    const afterElement = getDragAfterElement(proceduresList, e.clientY);
-    if (afterElement == null) {
-        proceduresList.appendChild(dragging);
-    } else {
-        proceduresList.insertBefore(dragging, afterElement);
+    if (dragging) {
+        const afterElement = getDragAfterElement(proceduresList, e.clientY);
+        if (afterElement == null) {
+            proceduresList.appendChild(dragging);
+        } else {
+            proceduresList.insertBefore(dragging, afterElement);
+        }
     }
 });
 
@@ -364,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Find the procedure text from the DOM
             const li = e.target.closest('li');
-            const currentText = li.innerHTML.replace(/ <span class="edit-icon"[^>]*>.*?<\/span>$/, ''); // Remove the edit icon from text
+            const currentText = li.innerHTML.replace(/ <span class="(edit-icon|drag-handle)"[^>]*>.*?<\/span>/g, ''); // Remove icons from text
 
             showModal('Editar Procedimento', currentText, async (newText) => {
                 if (newText !== currentText) {
@@ -377,6 +372,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         showProcedures(clientId);
                     }
                 }
+            });
+        }
+
+        // Event delegation for drag handles in procedures
+        if (e.target.classList.contains('drag-handle') && e.target.closest('#proceduresList')) {
+            const li = e.target.closest('li');
+            li.draggable = true;
+            li.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', li.dataset.id);
+                li.classList.add('dragging');
+            });
+            li.addEventListener('dragend', () => {
+                li.classList.remove('dragging');
+                li.draggable = false; // Reset draggable after drag
             });
         }
     });

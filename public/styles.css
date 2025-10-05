@@ -81,6 +81,22 @@ li.dragging {
     opacity: 1;
 }
 
+.drag-handle {
+    cursor: grab;
+    font-size: 14px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    user-select: none;
+}
+
+.drag-handle:hover {
+    opacity: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
 #proceduresList li img {
     max-width: 100%;
     height: auto;
