@@ -5,7 +5,6 @@ const clientSelect = document.getElementById('clientSelect');
 const proceduresContainer = document.getElementById('proceduresContainer');
 const proceduresList = document.getElementById('proceduresList');
 const addProcedureBtn = document.getElementById('addProcedureBtn');
-const editProcedureBtn = document.getElementById('editProcedureBtn');
 const deleteProcedureBtn = document.getElementById('deleteProcedureBtn');
 const addClientBtn = document.getElementById('addClientBtn');
 const editClientBtn = document.getElementById('editClientBtn');
@@ -382,28 +381,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    editProcedureBtn.addEventListener('click', async () => {
-        const clientId = clientSelect.value;
-        const selectedLi = document.querySelector('#proceduresList li.selected');
-        if (!selectedLi) {
-            alert('Selecione um procedimento para editar.');
-            return;
-        }
-        const procId = selectedLi.dataset.id;
-        const currentText = selectedLi.innerHTML; // Since it may have HTML
-        showModal('Editar Procedimento', currentText, async (newText) => {
-            if (newText !== currentText) {
-                const result = await fetchData(`${API_URL}/clients/${clientId}/procedures/${procId}`, {
-                    method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({procedure_text: newText})
-                });
-                if (result) {
-                    showProcedures(clientId);
-                }
-            }
-        });
-    });
 
     deleteProcedureBtn.addEventListener('click', async () => {
         const clientId = clientSelect.value;
