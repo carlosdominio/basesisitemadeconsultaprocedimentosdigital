@@ -6,58 +6,130 @@
     <title>Sistema de Consulta de Procedimentos</title>
     <link rel="icon" href="favicon.png">
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>Sistema de Consulta de Procedimentos de Cliente</h1>
-    <div class="container">
-        <label for="clientSelect">Selecione um cliente:</label>
-        <select id="clientSelect">
-            <option value="">-- Escolha um cliente --</option>
-        </select>
-        <button id="addClientBtn">Adicionar Cliente</button>
-        <button id="editClientBtn">Editar Nome do Cliente</button>
-        <button id="deleteClientBtn">Remover Cliente</button>
+    <div class="app-container">
+        <header class="header">
+            <div class="header-content">
+                <h1>Sistema de Consulta de Procedimentos</h1>
+                <p class="subtitle">Gerencie procedimentos de clientes e prestadores de forma eficiente</p>
+            </div>
+        </header>
 
-        <div id="proceduresContainer" style="display: none;">
-            <h2>Procedimentos do Cliente</h2>
-            <ul id="proceduresList"></ul>
-            <button id="addProcedureBtn">Adicionar Procedimento</button>
-            <button id="deleteProcedureBtn">Remover Procedimento</button>
-        </div>
+        <main class="main-content">
+            <!-- Card de Clientes -->
+            <section class="card">
+                <h2 class="card-header">👥 Gerenciamento de Clientes</h2>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="clientSelect">Cliente</label>
+                            <select id="clientSelect">
+                                <option value="">-- Selecione um cliente --</option>
+                            </select>
+                        </div>
+                    </div>
 
-        <h2>Prestadores</h2>
-        <label for="providerSelect">Selecione um prestador:</label>
-        <select id="providerSelect">
-            <option value="">-- Escolha um prestador --</option>
-        </select>
-        <button id="addProviderBtn">Adicionar Prestador</button>
-        <button id="editProviderBtn">Editar Nome do Prestador</button>
-        <button id="deleteProviderBtn">Excluir Prestador</button>
+                    <div class="btn-group">
+                        <button id="addClientBtn" class="btn btn-success">
+                            ➕ Adicionar Cliente
+                        </button>
+                        <button id="editClientBtn" class="btn btn-primary">
+                            ✏️ Editar Cliente
+                        </button>
+                        <button id="deleteClientBtn" class="btn btn-danger">
+                            🗑️ Remover Cliente
+                        </button>
+                    </div>
 
-        <label for="sinistroSelect">Selecione um tipo de sinistro:</label>
-        <select id="sinistroSelect">
-            <option value="">-- Escolha um tipo de sinistro --</option>
-            <option value="acidentes">Acidentes</option>
-            <option value="avarias">Avarias</option>
-            <option value="roubo">Roubo - Brasil</option>
-            <option value="exclusoes">Exclusões</option>
-        </select>
+                    <div id="proceduresContainer" class="procedures-section" style="display: none;">
+                        <h3>📋 Procedimentos do Cliente</h3>
+                        <ul id="proceduresList" class="procedures-list"></ul>
 
-        <div id="additionalProviderProceduresContainer" style="display: none;">
-            <h3 id="additionalProviderProceduresTitle">Procedimentos do Prestador AON </h3>
-            <ul id="additionalProviderProceduresList"><li data-index="0">1. Revisão</li><li data-index="1">2. Aprovação</li></ul>
-            <button id="addAdditionalProviderProcedureBtn">Adicionar Procedimento</button>
-            <button id="editAdditionalProviderProcedureBtn">Editar Procedimento</button>
-            <button id="deleteAdditionalProviderProcedureBtn">Remover Procedimento</button>
-        </div>
+                        <div class="btn-group">
+                            <button id="addProcedureBtn" class="btn btn-success">
+                                ➕ Adicionar Procedimento
+                            </button>
+                            <button id="deleteProcedureBtn" class="btn btn-danger">
+                                🗑️ Remover Procedimento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-        <div id="providerProceduresContainer" style="display: none;">
-            <h3 id="providerProceduresTitle">Procedimentos do Prestador DEMAIS CLIENTES</h3>
-            <ul id="providerProceduresList"></ul>
-            <button id="addProviderProcedureBtn">Adicionar Procedimento</button>
-            <button id="editProviderProcedureBtn">Editar Procedimento</button>
-            <button id="deleteProviderProcedureBtn">Remover Procedimento</button>
-        </div>
+            <!-- Card de Prestadores -->
+            <section class="card">
+                <h2 class="card-header">🏢 Gerenciamento de Prestadores</h2>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="providerSelect">Prestador</label>
+                            <select id="providerSelect">
+                                <option value="">-- Selecione um prestador --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sinistroSelect">Tipo de Sinistro</label>
+                            <select id="sinistroSelect">
+                                <option value="">-- Selecione um tipo --</option>
+                                <option value="acidentes">🚗 Acidentes</option>
+                                <option value="avarias">🔧 Avarias</option>
+                                <option value="roubo">🕵️ Roubo - Brasil</option>
+                                <option value="exclusoes">📄 Exclusões</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button id="addProviderBtn" class="btn btn-success">
+                            ➕ Adicionar Prestador
+                        </button>
+                        <button id="editProviderBtn" class="btn btn-primary">
+                            ✏️ Editar Prestador
+                        </button>
+                        <button id="deleteProviderBtn" class="btn btn-danger">
+                            🗑️ Excluir Prestador
+                        </button>
+                    </div>
+
+                    <div id="providerProceduresContainer" style="display: none;" class="procedures-section">
+                        <h3 id="providerProceduresTitle">📋 Procedimentos do Prestador</h3>
+                        <ul id="providerProceduresList" class="procedures-list"></ul>
+
+                        <div class="btn-group">
+                            <button id="addProviderProcedureBtn" class="btn btn-success">
+                                ➕ Adicionar Procedimento
+                            </button>
+                            <button id="editProviderProcedureBtn" class="btn btn-primary">
+                                ✏️ Editar Procedimento
+                            </button>
+                            <button id="deleteProviderProcedureBtn" class="btn btn-danger">
+                                🗑️ Remover Procedimento
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="additionalProviderProceduresContainer" style="display: none;" class="procedures-section">
+                        <h3 id="additionalProviderProceduresTitle">📋 Procedimentos Adicionais</h3>
+                        <ul id="additionalProviderProceduresList" class="procedures-list"></ul>
+
+                        <div class="btn-group">
+                            <button id="addAdditionalProviderProcedureBtn" class="btn btn-success">
+                                ➕ Adicionar Procedimento
+                            </button>
+                            <button id="editAdditionalProviderProcedureBtn" class="btn btn-primary">
+                                ✏️ Editar Procedimento
+                            </button>
+                            <button id="deleteAdditionalProviderProcedureBtn" class="btn btn-danger">
+                                🗑️ Remover Procedimento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
 
     <!-- Modal -->

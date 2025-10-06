@@ -99,29 +99,53 @@ async function showProcedures(clientId) {
     const procedures = await fetchData(`${API_URL}/clients/${clientId}/procedures`);
     proceduresList.innerHTML = '';
     if (procedures) {
-        procedures.forEach((proc, index) => {
-            const li = document.createElement('li');
-            let content = `<span class="move-up-btn" data-proc-id="${proc.id}" title="Mover para cima">↑</span>`;
-            content += `<span class="move-down-btn" data-proc-id="${proc.id}" title="Mover para baixo">↓</span> `;
-            content += proc.procedure_text;
-            if (proc.image_data) {
-                content += `<br><img src="${proc.image_data}" alt="Imagem do procedimento" style="max-width: 100%; height: auto;">`;
-            }
-            content += ` <span class="edit-icon" data-proc-id="${proc.id}" title="Editar procedimento">✏️</span>`;
-            li.innerHTML = content;
-            li.dataset.id = proc.id; // Armazena o ID do BD
-            li.dataset.index = index;
-            li.addEventListener('click', (e) => {
-                // Se clicou nos botões de mover ou editar, não seleciona o item
-                if (e.target.classList.contains('edit-icon') || e.target.classList.contains('move-up-btn') || e.target.classList.contains('move-down-btn')) {
-                    return;
+        if (procedures.length === 0) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-state';
+            emptyState.innerHTML = `
+                <h3>Nenhum procedimento encontrado</h3>
+                <p>Adicione o primeiro procedimento para este cliente.</p>
+            `;
+            proceduresList.appendChild(emptyState);
+        } else {
+            procedures.forEach((proc, index) => {
+                const li = document.createElement('li');
+                li.className = 'procedure-item';
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'procedure-content';
+                contentDiv.innerHTML = proc.procedure_text;
+                if (proc.image_data) {
+                    contentDiv.innerHTML += `<br><img src="${proc.image_data}" alt="Imagem do procedimento" style="max-width: 100%; height: auto; margin-top: 0.5rem; border-radius: 4px;">`;
                 }
-                // Remove selected from others
-                document.querySelectorAll('#proceduresList li').forEach(el => el.classList.remove('selected'));
-                li.classList.add('selected');
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'procedure-actions';
+                actionsDiv.innerHTML = `
+                    <button class="btn btn-icon move-up-btn" data-proc-id="${proc.id}" title="Mover para cima">↑</button>
+                    <button class="btn btn-icon move-down-btn" data-proc-id="${proc.id}" title="Mover para baixo">↓</button>
+                    <button class="btn btn-icon btn-primary edit-icon" data-proc-id="${proc.id}" title="Editar procedimento">✏️</button>
+                `;
+
+                li.appendChild(contentDiv);
+                li.appendChild(actionsDiv);
+
+                li.dataset.id = proc.id;
+                li.dataset.index = index;
+
+                li.addEventListener('click', (e) => {
+                    // Se clicou nos botões, não seleciona o item
+                    if (e.target.closest('.procedure-actions')) {
+                        return;
+                    }
+                    // Remove selected from others
+                    document.querySelectorAll('#proceduresList li').forEach(el => el.classList.remove('selected'));
+                    li.classList.add('selected');
+                });
+
+                proceduresList.appendChild(li);
             });
-            proceduresList.appendChild(li);
-        });
+        }
         proceduresContainer.style.display = 'block';
     }
 }
@@ -135,20 +159,29 @@ async function showProviderProcedures(providerId, sinistroType) {
     }
     const procedures = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistroType}`);
     providerProceduresList.innerHTML = '';
-    if (procedures) {
+    if (procedures && procedures.length > 0) {
         procedures.forEach((proc, index) => {
             const li = document.createElement('li');
-            li.innerHTML = `${index + 1}. ${proc.procedure_text}`;
+            li.className = 'procedure-item';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'procedure-content';
+            contentDiv.textContent = proc.procedure_text;
+
+            li.appendChild(contentDiv);
             li.dataset.id = proc.id;
+
             li.addEventListener('click', () => {
-                // Remove selected from others
                 document.querySelectorAll('#providerProceduresList li').forEach(el => el.classList.remove('selected'));
                 li.classList.add('selected');
             });
+
             providerProceduresList.appendChild(li);
         });
+        providerProceduresContainer.style.display = 'block';
+    } else {
+        providerProceduresContainer.style.display = 'none';
     }
-    providerProceduresContainer.style.display = 'block';
 }
 
 async function showAdditionalProviderProcedures(providerId, sinistroType) {
@@ -158,20 +191,29 @@ async function showAdditionalProviderProcedures(providerId, sinistroType) {
     }
     const procedures = await fetchData(`${API_URL}/providers/${providerId}/additional-procedures/${sinistroType}`);
     additionalProviderProceduresList.innerHTML = '';
-    if (procedures) {
+    if (procedures && procedures.length > 0) {
         procedures.forEach((proc, index) => {
             const li = document.createElement('li');
-            li.innerHTML = `${index + 1}. ${proc.procedure_text}`;
+            li.className = 'procedure-item';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'procedure-content';
+            contentDiv.textContent = proc.procedure_text;
+
+            li.appendChild(contentDiv);
             li.dataset.id = proc.id;
+
             li.addEventListener('click', () => {
-                // Remove selected from others
                 document.querySelectorAll('#additionalProviderProceduresList li').forEach(el => el.classList.remove('selected'));
                 li.classList.add('selected');
             });
+
             additionalProviderProceduresList.appendChild(li);
         });
+        additionalProviderProceduresContainer.style.display = 'block';
+    } else {
+        additionalProviderProceduresContainer.style.display = 'none';
     }
-    additionalProviderProceduresContainer.style.display = 'block';
 }
 
 // Modal functions
