@@ -628,8 +628,8 @@ select:hover, input[type="text"]:hover, input[type="file"]:hover {
 
 .procedure-item.selected {
     background: var(--primary-light);
-    border-color: var(--primary);
-    padding: calc(var(--spacing-xl) + 8px);
+    border: 2px solid var(--primary);
+    padding: calc(var(--spacing-xl) + 6px);
     margin: calc(var(--spacing-lg) - 8px) var(--spacing-sm) calc(var(--spacing-lg) - 8px) var(--spacing-sm);
     border-radius: var(--radius-lg);
 }
