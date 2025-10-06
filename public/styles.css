@@ -490,10 +490,26 @@ select:focus, input[type="text"]:focus {
     border-top: 1px solid var(--border-color);
 }
 
-.procedures-section h3 {
-    margin: 0 0 1rem 0;
+.procedures-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.procedures-header h3 {
+    margin: 0;
     color: var(--text-primary);
     font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.procedure-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
 }
 
 .procedures-list {
@@ -582,5 +598,27 @@ select:focus, input[type="text"]:focus {
     .btn-primary, .btn-secondary, .btn-danger {
         width: 100%;
         justify-content: center;
+    }
+
+    .procedure-item {
+        padding: 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .procedure-item .procedure-actions {
+        align-self: flex-end;
+    }
+
+    .procedures-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .procedure-actions {
+        width: 100%;
+        justify-content: flex-start;
     }
 }
