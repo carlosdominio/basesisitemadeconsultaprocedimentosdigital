@@ -189,6 +189,17 @@ async function showAdditionalProviderProcedures(providerId, sinistroType) {
         additionalProviderProceduresContainer.style.display = 'none';
         return;
     }
+
+    // Atualizar título dinamicamente com o tipo de sinistro em vermelho
+    const sinistroLabels = {
+        'acidentes': 'Acidentes',
+        'avarias': 'Avarias',
+        'roubo': 'Roubo - Brasil',
+        'exclusoes': 'Exclusões'
+    };
+    const sinistroLabel = sinistroLabels[sinistroType] || sinistroType;
+    additionalProviderProceduresTitle.innerHTML = `📋 Procedimentos AON <span style="color: #dc2626;">[${sinistroLabel}]</span>`;
+
     const procedures = await fetchData(`${API_URL}/providers/${providerId}/additional-procedures/${sinistroType}`);
     additionalProviderProceduresList.innerHTML = '';
     if (procedures && procedures.length > 0) {
