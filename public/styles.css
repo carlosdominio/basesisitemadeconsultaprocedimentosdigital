@@ -457,6 +457,10 @@ button:hover {
     height: 150px;
 }
 
+.sinistro-red {
+    color: red;
+}
+
 /* Novos estilos para a interface moderna */
 .form-group {
     margin-bottom: 1rem;

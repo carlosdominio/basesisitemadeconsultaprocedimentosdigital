@@ -159,6 +159,7 @@ async function showProviderProcedures(providerId, sinistroType) {
     }
     const procedures = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistroType}`);
     providerProceduresList.innerHTML = '';
+    providerProceduresTitle.innerHTML = `Procedimentos Demais CLIENTES <span class="sinistro-red">${sinistroType}</span>`;
     if (procedures && procedures.length > 0) {
         procedures.forEach((proc, index) => {
             const li = document.createElement('li');
@@ -190,12 +191,7 @@ async function showAdditionalProviderProcedures(providerId, sinistroType) {
         return;
     }
 
-    // Atualizar título dinamicamente apenas para acidentes
-    if (sinistroType === 'acidentes') {
-        additionalProviderProceduresTitle.innerHTML = `📋 Procedimentos AON <span style="color: #dc2626;">[Acidentes]</span>`;
-    } else {
-        additionalProviderProceduresTitle.innerHTML = `📋 Procedimentos Demais CLIENTES`;
-    }
+    additionalProviderProceduresTitle.innerHTML = `Procedimentos AON <span class="sinistro-red">${sinistroType}</span>`;
 
     const procedures = await fetchData(`${API_URL}/providers/${providerId}/additional-procedures/${sinistroType}`);
     additionalProviderProceduresList.innerHTML = '';
