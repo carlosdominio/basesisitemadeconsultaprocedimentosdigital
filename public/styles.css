@@ -628,15 +628,13 @@ select:hover, input[type="text"]:hover, input[type="file"]:hover {
 }
 
 .procedure-item:hover {
-    background: var(--surface-hover);
-    border-color: var(--primary);
-    transform: translateX(2px);
+    background: var(--surface);
 }
 
 .procedure-item.selected {
     background: var(--primary-light);
-    border: 2px solid var(--primary);
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3);
+    border: 2px solid var(--danger);
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.3);
     padding: calc(var(--spacing-xl) + 6px);
     margin: calc(var(--spacing-lg) - 8px) var(--spacing-sm) calc(var(--spacing-lg) - 8px) var(--spacing-sm);
     border-radius: var(--radius-lg);
