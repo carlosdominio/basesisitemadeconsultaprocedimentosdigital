@@ -159,7 +159,8 @@ async function showProviderProcedures(providerId, sinistroType) {
     }
     const procedures = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistroType}`);
     providerProceduresList.innerHTML = '';
-    providerProceduresTitle.innerHTML = `Procedimentos Demais CLIENTES <span class="sinistro-red">${sinistroType}</span>`;
+    const capitalizedSinistro = sinistroType.charAt(0).toUpperCase() + sinistroType.slice(1);
+    providerProceduresTitle.innerHTML = `Procedimentos Demais CLIENTES <span class="sinistro-red">${capitalizedSinistro}</span>`;
     if (procedures && procedures.length > 0) {
         procedures.forEach((proc, index) => {
             const li = document.createElement('li');
@@ -191,7 +192,8 @@ async function showAdditionalProviderProcedures(providerId, sinistroType) {
         return;
     }
 
-    additionalProviderProceduresTitle.innerHTML = `Procedimentos AON <span class="sinistro-red">${sinistroType}</span>`;
+    const capitalizedSinistro = sinistroType.charAt(0).toUpperCase() + sinistroType.slice(1);
+    additionalProviderProceduresTitle.innerHTML = `Procedimentos AON <span class="sinistro-red">${capitalizedSinistro}</span>`;
 
     const procedures = await fetchData(`${API_URL}/providers/${providerId}/additional-procedures/${sinistroType}`);
     additionalProviderProceduresList.innerHTML = '';
