@@ -190,15 +190,12 @@ async function showAdditionalProviderProcedures(providerId, sinistroType) {
         return;
     }
 
-    // Atualizar título dinamicamente com o tipo de sinistro em vermelho
-    const sinistroLabels = {
-        'acidentes': 'Acidentes',
-        'avarias': 'Avarias',
-        'roubo': 'Roubo - Brasil',
-        'exclusoes': 'Exclusões'
-    };
-    const sinistroLabel = sinistroLabels[sinistroType] || sinistroType;
-    additionalProviderProceduresTitle.innerHTML = `📋 Procedimentos AON <span style="color: #dc2626;">[${sinistroLabel}]</span>`;
+    // Atualizar título dinamicamente apenas para acidentes
+    if (sinistroType === 'acidentes') {
+        additionalProviderProceduresTitle.innerHTML = `📋 Procedimentos AON <span style="color: #dc2626;">[Acidentes]</span>`;
+    } else {
+        additionalProviderProceduresTitle.innerHTML = `📋 Procedimentos Demais CLIENTES`;
+    }
 
     const procedures = await fetchData(`${API_URL}/providers/${providerId}/additional-procedures/${sinistroType}`);
     additionalProviderProceduresList.innerHTML = '';
