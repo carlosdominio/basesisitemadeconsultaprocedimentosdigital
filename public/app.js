@@ -364,7 +364,7 @@ async function initializeEventListeners() {
                 showProcedures(clientId);
             }
         });
-    }
+    });
 }
     
     // Image modal functionality
