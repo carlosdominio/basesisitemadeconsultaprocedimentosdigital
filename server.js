@@ -11,7 +11,22 @@ const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-    origin: true,
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+
+        // Allow localhost for development
+        if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+            return callback(null, true);
+        }
+
+        // Allow Vercel deployments
+        if (origin.includes('vercel.app')) {
+            return callback(null, true);
+        }
+
+        return callback(null, true); // Allow all for now
+    },
     credentials: true
 }));
 app.use(bodyParser.json({ limit: '10mb' }));
@@ -23,9 +38,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: false, // Set to false for development/localhost
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: 'lax' // Important for cross-origin requests
     }
 }));
 
