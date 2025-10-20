@@ -62,13 +62,23 @@ app.get('/login', (req, res) => {
 
 // Database
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME || 'sistema_consulta',
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
 // Initialize database
 (async () => {
     try {
+        console.log('Tentando conectar ao banco de dados...');
+
+        // Test connection
+        await pool.query('SELECT NOW()');
+        console.log('Conexão com banco de dados estabelecida!');
+
         // Create users table
         await pool.query(`CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -81,6 +91,8 @@ const pool = new Pool({
             id SERIAL PRIMARY KEY,
             name TEXT
         )`);
+
+        console.log('Tabelas criadas/verficadas com sucesso!');
 
         await pool.query(`CREATE TABLE IF NOT EXISTS client_procedures (
             id SERIAL PRIMARY KEY,
@@ -144,6 +156,7 @@ const pool = new Pool({
         }
     } catch (err) {
         console.error('Error initializing database:', err);
+        console.log('O servidor continuará rodando sem banco de dados. Algumas funcionalidades podem não funcionar.');
     }
 })();
 
