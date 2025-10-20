@@ -739,4 +739,4 @@ async function initializeEventListeners() {
             }
         }
     });
-});
+}
