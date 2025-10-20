@@ -5,7 +5,6 @@ const cors = require('cors');
 const path = require('path');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
-const pgSession = require('connect-pg-simple')(session);
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -33,21 +32,16 @@ app.use(cors({
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-// Session configuration with PostgreSQL store
+// Session configuration - simplified for serverless
 app.use(session({
-    store: new pgSession({
-        pool: pool,
-        tableName: 'session',
-        createTableIfMissing: false
-    }),
     secret: process.env.SESSION_SECRET || 'sistema-consulta-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // Set to false for development/localhost
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        sameSite: 'lax' // Important for cross-origin requests
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     }
 }));
 
@@ -75,16 +69,6 @@ const pool = new Pool({
 // Initialize database
 (async () => {
     try {
-        // Create session table for connect-pg-simple
-        await pool.query(`CREATE TABLE IF NOT EXISTS session (
-            sid VARCHAR NOT NULL COLLATE "default",
-            sess JSON NOT NULL,
-            expire TIMESTAMP(6) NOT NULL
-        ) WITH (OIDS=FALSE);
-
-        ALTER TABLE session ADD CONSTRAINT session_pkey PRIMARY KEY (sid) NOT DEFERRABLE INITIALLY IMMEDIATE;
-        CREATE INDEX IF NOT EXISTS IDX_session_expire ON session(expire);`);
-
         // Create users table
         await pool.query(`CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -142,6 +126,8 @@ const pool = new Pool({
             // Create default admin user
             const hashedPassword = await bcrypt.hash('admin123', 10);
             await pool.query("INSERT INTO users (username, password_hash) VALUES ($1, $2)", ['admin', hashedPassword]);
+        } else {
+            console.log('Database initialized successfully');
         }
 
         const result = await pool.query("SELECT COUNT(*) as count FROM clients");
@@ -601,4 +587,13 @@ app.put('/api/clients/:clientId/procedures/:procId/move-down', requireAuth, asyn
     }
 });
 
+// Export for Vercel
 module.exports = app;
+
+// For local development
+if (require.main === module) {
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+}
