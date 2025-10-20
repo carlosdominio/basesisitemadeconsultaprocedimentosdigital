@@ -365,6 +365,7 @@ async function initializeEventListeners() {
             }
         });
     }
+}
     
     // Image modal functionality
     let scale = 1;
