@@ -171,6 +171,14 @@
         function initializeApp() {
             // The app will be initialized by the existing app.js script
             console.log('Sistema inicializado com sucesso!');
+
+            // Initialize the app after authentication check
+            if (typeof populateClients === 'function') {
+                populateClients();
+            }
+            if (typeof populateProviders === 'function') {
+                populateProviders();
+            }
         }
     </script>
 </body>

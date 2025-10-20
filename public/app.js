@@ -303,8 +303,30 @@ logoutBtn.addEventListener('click', async () => {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
-    populateClients();
-    populateProviders();
+    // Only initialize if we're on the main page (not login)
+    if (!window.location.pathname.includes('login')) {
+        // Check authentication first, then initialize
+        checkAuthAndInitialize();
+    }
+});
+
+async function checkAuthAndInitialize() {
+    try {
+        const response = await fetch('/api/check-auth', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (data.authenticated) {
+            populateClients();
+            populateProviders();
+        } else {
+            window.location.href = '/login';
+        }
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = '/login';
+    }
 
     clientSelect.addEventListener('change', () => {
         showProcedures(clientSelect.value);
