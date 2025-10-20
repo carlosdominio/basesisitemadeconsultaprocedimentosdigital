@@ -320,6 +320,7 @@ async function checkAuthAndInitialize() {
         if (data.authenticated) {
             populateClients();
             populateProviders();
+            initializeEventListeners();
         } else {
             window.location.href = '/login';
         }
@@ -327,7 +328,9 @@ async function checkAuthAndInitialize() {
         console.error('Auth check failed:', error);
         window.location.href = '/login';
     }
+}
 
+async function initializeEventListeners() {
     clientSelect.addEventListener('change', () => {
         showProcedures(clientSelect.value);
     });
@@ -361,7 +364,7 @@ async function checkAuthAndInitialize() {
                 showProcedures(clientId);
             }
         });
-    });
+    }
     
     // Image modal functionality
     let scale = 1;
