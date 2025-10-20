@@ -1,6 +1,7 @@
 const API_URL = '/api';
 
 // Elementos DOM
+const logoutBtn = document.getElementById('logoutBtn');
 const clientSelect = document.getElementById('clientSelect');
 const proceduresContainer = document.getElementById('proceduresContainer');
 const proceduresList = document.getElementById('proceduresList');
@@ -52,7 +53,13 @@ const imageClose = document.getElementsByClassName('image-close')[0];
 
 async function fetchData(url, options = {}) {
     try {
-        const response = await fetch(url, options);
+        // Add credentials to all requests
+        const defaultOptions = {
+            credentials: 'include',
+            ...options
+        };
+
+        const response = await fetch(url, defaultOptions);
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
@@ -60,6 +67,14 @@ async function fetchData(url, options = {}) {
         return response.json();
     } catch (error) {
         console.error('API Error:', error);
+
+        // Check if it's an authentication error
+        if (error.message.includes('401') || error.message.includes('Authentication required')) {
+            alert('Sua sessão expirou. Você será redirecionado para o login.');
+            window.location.href = '/login';
+            return null;
+        }
+
         alert('Ocorreu um erro ao comunicar com o servidor.');
         return null;
     }
@@ -264,6 +279,27 @@ imageInput.addEventListener('change', (e) => {
 });
 fontSizeSelect.addEventListener('change', () => document.execCommand('fontSize', false, fontSizeSelect.value));
 colorPicker.addEventListener('change', () => document.execCommand('foreColor', false, colorPicker.value));
+
+// Logout functionality
+logoutBtn.addEventListener('click', async () => {
+    if (confirm('Tem certeza que deseja sair do sistema?')) {
+        try {
+            const response = await fetch(`${API_URL}/logout`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                window.location.href = '/login';
+            } else {
+                alert('Erro ao fazer logout. Tente novamente.');
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            alert('Erro de conexão. Tente novamente.');
+        }
+    }
+});
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {

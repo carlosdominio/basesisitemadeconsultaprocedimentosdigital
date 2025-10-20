@@ -3,19 +3,45 @@ const { Pool } = require('pg');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
+const session = require('express-session');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+
+// Session configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'sistema-consulta-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
+    if (req.session.userId) {
+        res.sendFile(__dirname + '/public/index.html');
+    } else {
+        res.sendFile(__dirname + '/public/login.html');
+    }
+});
+
+app.get('/login', (req, res) => {
+    res.sendFile(__dirname + '/public/login.html');
 });
 
 // Database
@@ -27,6 +53,14 @@ const pool = new Pool({
 // Initialize database
 (async () => {
     try {
+        // Create users table
+        await pool.query(`CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
         await pool.query(`CREATE TABLE IF NOT EXISTS clients (
             id SERIAL PRIMARY KEY,
             name TEXT
@@ -71,10 +105,18 @@ const pool = new Pool({
         )`);
 
         // Insert default data if not exists
+        const userResult = await pool.query("SELECT COUNT(*) as count FROM users");
+        if (parseInt(userResult.rows[0].count) === 0) {
+            // Create default admin user
+            const hashedPassword = await bcrypt.hash('admin123', 10);
+            await pool.query("INSERT INTO users (username, password_hash) VALUES ($1, $2)", ['admin', hashedPassword]);
+        }
+
         const result = await pool.query("SELECT COUNT(*) as count FROM clients");
         if (parseInt(result.rows[0].count) === 0) {
             await insertDefaultData();
             // Update sequences to avoid duplicate key errors
+            await pool.query("SELECT setval('users_id_seq', (SELECT MAX(id) FROM users))");
             await pool.query("SELECT setval('clients_id_seq', (SELECT MAX(id) FROM clients))");
             await pool.query("SELECT setval('client_procedures_id_seq', (SELECT MAX(id) FROM client_procedures))");
             await pool.query("SELECT setval('providers_id_seq', (SELECT MAX(id) FROM providers))");
@@ -147,8 +189,62 @@ async function insertDefaultData() {
     }
 }
 
-// Routes
-app.get('/api/clients', async (req, res) => {
+// Authentication middleware
+function requireAuth(req, res, next) {
+    if (req.session.userId) {
+        return next();
+    }
+    res.status(401).json({error: 'Authentication required'});
+}
+
+// Auth routes
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        const result = await pool.query("SELECT id, username, password_hash FROM users WHERE username = $1", [username]);
+
+        if (result.rows.length === 0) {
+            return res.status(401).json({error: 'Usuário ou senha inválidos'});
+        }
+
+        const user = result.rows[0];
+        const isValidPassword = await bcrypt.compare(password, user.password_hash);
+
+        if (!isValidPassword) {
+            return res.status(401).json({error: 'Usuário ou senha inválidos'});
+        }
+
+        req.session.userId = user.id;
+        req.session.username = user.username;
+
+        res.json({message: 'Login realizado com sucesso', user: {id: user.id, username: user.username}});
+    } catch (err) {
+        console.error('Login error:', err);
+        res.status(500).json({error: 'Erro interno do servidor'});
+    }
+});
+
+app.post('/api/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({error: 'Erro ao fazer logout'});
+        }
+        res.clearCookie('connect.sid');
+        res.json({message: 'Logout realizado com sucesso'});
+    });
+});
+
+app.get('/api/check-auth', (req, res) => {
+    if (req.session.userId) {
+        res.json({authenticated: true, user: {id: req.session.userId, username: req.session.username}});
+    } else {
+        res.json({authenticated: false});
+    }
+});
+
+// Protected routes
+app.get('/api/clients', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM clients");
         res.json(result.rows);
@@ -157,7 +253,7 @@ app.get('/api/clients', async (req, res) => {
     }
 });
 
-app.get('/api/clients/:id/procedures', async (req, res) => {
+app.get('/api/clients/:id/procedures', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM client_procedures WHERE client_id = $1 ORDER BY order_index", [req.params.id]);
         res.json(result.rows);
@@ -166,7 +262,7 @@ app.get('/api/clients/:id/procedures', async (req, res) => {
     }
 });
 
-app.get('/api/providers', async (req, res) => {
+app.get('/api/providers', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM providers");
         res.json(result.rows);
@@ -175,7 +271,7 @@ app.get('/api/providers', async (req, res) => {
     }
 });
 
-app.get('/api/providers/:id/procedures/:sinistro', async (req, res) => {
+app.get('/api/providers/:id/procedures/:sinistro', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM provider_procedures WHERE provider_id = $1 AND sinistro_type = $2 ORDER BY order_index", [req.params.id, req.params.sinistro]);
         res.json(result.rows);
@@ -184,7 +280,7 @@ app.get('/api/providers/:id/procedures/:sinistro', async (req, res) => {
     }
 });
 
-app.get('/api/providers/:id/additional-procedures/:sinistro', async (req, res) => {
+app.get('/api/providers/:id/additional-procedures/:sinistro', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM additional_provider_procedures WHERE provider_id = $1 AND sinistro_type = $2 ORDER BY order_index", [req.params.id, req.params.sinistro]);
         res.json(result.rows);
@@ -194,7 +290,7 @@ app.get('/api/providers/:id/additional-procedures/:sinistro', async (req, res) =
 });
 
 // Add provider
-app.post('/api/providers', async (req, res) => {
+app.post('/api/providers', requireAuth, async (req, res) => {
     try {
         const { name, image } = req.body;
         const result = await pool.query("INSERT INTO providers (name, image) VALUES ($1, $2) RETURNING id", [name, image || '']);
@@ -205,7 +301,7 @@ app.post('/api/providers', async (req, res) => {
 });
 
 // Edit provider
-app.put('/api/providers/:id', async (req, res) => {
+app.put('/api/providers/:id', requireAuth, async (req, res) => {
     try {
         const { name, image } = req.body;
         const result = await pool.query("UPDATE providers SET name = $1, image = $2 WHERE id = $3", [name, image || '', req.params.id]);
@@ -216,7 +312,7 @@ app.put('/api/providers/:id', async (req, res) => {
 });
 
 // Delete provider
-app.delete('/api/providers/:id', async (req, res) => {
+app.delete('/api/providers/:id', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("DELETE FROM providers WHERE id = $1", [req.params.id]);
         res.json({changes: result.rowCount});
@@ -226,7 +322,7 @@ app.delete('/api/providers/:id', async (req, res) => {
 });
 
 // Add client
-app.post('/api/clients', async (req, res) => {
+app.post('/api/clients', requireAuth, async (req, res) => {
     try {
         const { name } = req.body;
         // Check if client with same name already exists
@@ -242,7 +338,7 @@ app.post('/api/clients', async (req, res) => {
 });
 
 // Edit client
-app.put('/api/clients/:id', async (req, res) => {
+app.put('/api/clients/:id', requireAuth, async (req, res) => {
     try {
         const { name } = req.body;
         const result = await pool.query("UPDATE clients SET name = $1 WHERE id = $2", [name, req.params.id]);
@@ -253,7 +349,7 @@ app.put('/api/clients/:id', async (req, res) => {
 });
 
 // Delete client
-app.delete('/api/clients/:id', async (req, res) => {
+app.delete('/api/clients/:id', requireAuth, async (req, res) => {
     try {
         await pool.query("DELETE FROM client_procedures WHERE client_id = $1", [req.params.id]);
         const result = await pool.query("DELETE FROM clients WHERE id = $1", [req.params.id]);
@@ -264,7 +360,7 @@ app.delete('/api/clients/:id', async (req, res) => {
 });
 
 // Add client procedure
-app.post('/api/clients/:id/procedures', async (req, res) => {
+app.post('/api/clients/:id/procedures', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const maxOrder = await pool.query("SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM client_procedures WHERE client_id = $1", [req.params.id]);
@@ -277,7 +373,7 @@ app.post('/api/clients/:id/procedures', async (req, res) => {
 });
 
 // Edit client procedure
-app.put('/api/clients/:id/procedures/:procId', async (req, res) => {
+app.put('/api/clients/:id/procedures/:procId', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const result = await pool.query("UPDATE client_procedures SET procedure_text = $1 WHERE id = $2 AND client_id = $3", [procedure_text, req.params.procId, req.params.id]);
@@ -288,7 +384,7 @@ app.put('/api/clients/:id/procedures/:procId', async (req, res) => {
 });
 
 // Reorder client procedures
-app.put('/api/clients/:id/reorder-procedures', async (req, res) => {
+app.put('/api/clients/:id/reorder-procedures', requireAuth, async (req, res) => {
     try {
         const { ids } = req.body;
         for (let i = 0; i < ids.length; i++) {
@@ -301,7 +397,7 @@ app.put('/api/clients/:id/reorder-procedures', async (req, res) => {
 });
 
 // Delete client procedure
-app.delete('/api/clients/:id/procedures/:procId', async (req, res) => {
+app.delete('/api/clients/:id/procedures/:procId', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("DELETE FROM client_procedures WHERE id = $1 AND client_id = $2", [req.params.procId, req.params.id]);
         res.json({changes: result.rowCount});
@@ -311,7 +407,7 @@ app.delete('/api/clients/:id/procedures/:procId', async (req, res) => {
 });
 
 // Add provider procedure
-app.post('/api/providers/:id/procedures/:sinistro', async (req, res) => {
+app.post('/api/providers/:id/procedures/:sinistro', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const maxOrder = await pool.query("SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM provider_procedures WHERE provider_id = $1 AND sinistro_type = $2", [req.params.id, req.params.sinistro]);
@@ -324,7 +420,7 @@ app.post('/api/providers/:id/procedures/:sinistro', async (req, res) => {
 });
 
 // Edit provider procedure
-app.put('/api/providers/:id/procedures/:procId', async (req, res) => {
+app.put('/api/providers/:id/procedures/:procId', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const result = await pool.query("UPDATE provider_procedures SET procedure_text = $1 WHERE id = $2 AND provider_id = $3", [procedure_text, req.params.procId, req.params.id]);
@@ -335,7 +431,7 @@ app.put('/api/providers/:id/procedures/:procId', async (req, res) => {
 });
 
 // Reorder provider procedures
-app.put('/api/providers/:id/procedures/:sinistro/reorder', async (req, res) => {
+app.put('/api/providers/:id/procedures/:sinistro/reorder', requireAuth, async (req, res) => {
     try {
         const { ids } = req.body;
         for (let i = 0; i < ids.length; i++) {
@@ -348,7 +444,7 @@ app.put('/api/providers/:id/procedures/:sinistro/reorder', async (req, res) => {
 });
 
 // Delete provider procedure
-app.delete('/api/providers/:id/procedures/:procId', async (req, res) => {
+app.delete('/api/providers/:id/procedures/:procId', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("DELETE FROM provider_procedures WHERE id = $1 AND provider_id = $2", [req.params.procId, req.params.id]);
         res.json({changes: result.rowCount});
@@ -358,7 +454,7 @@ app.delete('/api/providers/:id/procedures/:procId', async (req, res) => {
 });
 
 // Add additional provider procedure
-app.post('/api/providers/:id/additional-procedures/:sinistro', async (req, res) => {
+app.post('/api/providers/:id/additional-procedures/:sinistro', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const maxOrder = await pool.query("SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM additional_provider_procedures WHERE provider_id = $1 AND sinistro_type = $2", [req.params.id, req.params.sinistro]);
@@ -371,7 +467,7 @@ app.post('/api/providers/:id/additional-procedures/:sinistro', async (req, res) 
 });
 
 // Edit additional provider procedure
-app.put('/api/providers/:id/additional-procedures/:procId', async (req, res) => {
+app.put('/api/providers/:id/additional-procedures/:procId', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const result = await pool.query("UPDATE additional_provider_procedures SET procedure_text = $1 WHERE id = $2 AND provider_id = $3", [procedure_text, req.params.procId, req.params.id]);
@@ -382,7 +478,7 @@ app.put('/api/providers/:id/additional-procedures/:procId', async (req, res) => 
 });
 
 // Reorder additional provider procedures
-app.put('/api/providers/:id/additional-procedures/:sinistro/reorder', async (req, res) => {
+app.put('/api/providers/:id/additional-procedures/:sinistro/reorder', requireAuth, async (req, res) => {
     try {
         const { ids } = req.body;
         for (let i = 0; i < ids.length; i++) {
@@ -395,7 +491,7 @@ app.put('/api/providers/:id/additional-procedures/:sinistro/reorder', async (req
 });
 
 // Delete additional provider procedure
-app.delete('/api/providers/:id/additional-procedures/:procId', async (req, res) => {
+app.delete('/api/providers/:id/additional-procedures/:procId', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("DELETE FROM additional_provider_procedures WHERE id = $1 AND provider_id = $2", [req.params.procId, req.params.id]);
         res.json({changes: result.rowCount});
@@ -405,7 +501,7 @@ app.delete('/api/providers/:id/additional-procedures/:procId', async (req, res) 
 });
 
 // Move procedure up
-app.put('/api/clients/:clientId/procedures/:procId/move-up', async (req, res) => {
+app.put('/api/clients/:clientId/procedures/:procId/move-up', requireAuth, async (req, res) => {
     try {
         const { clientId, procId } = req.params;
 
@@ -437,7 +533,7 @@ app.put('/api/clients/:clientId/procedures/:procId/move-up', async (req, res) =>
 });
 
 // Move procedure down
-app.put('/api/clients/:clientId/procedures/:procId/move-down', async (req, res) => {
+app.put('/api/clients/:clientId/procedures/:procId/move-down', requireAuth, async (req, res) => {
     try {
         const { clientId, procId } = req.params;
 

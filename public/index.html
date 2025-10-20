@@ -16,6 +16,11 @@
         </header>
 
         <main class="content-grid">
+            <!-- Logout Button -->
+            <div class="logout-section">
+                <button id="logoutBtn" class="btn btn-secondary logout-btn">🚪 Sair do Sistema</button>
+            </div>
+
             <!-- Seção de Clientes -->
             <section class="section-card">
                 <h2 class="section-header">👥 Gerenciamento de Clientes</h2>
@@ -141,5 +146,32 @@
     </div>
 
     <script src="app.js"></script>
+    <script>
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/check-auth', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (!data.authenticated) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                // Initialize the app if authenticated
+                initializeApp();
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                window.location.href = '/login';
+            }
+        });
+
+        function initializeApp() {
+            // The app will be initialized by the existing app.js script
+            console.log('Sistema inicializado com sucesso!');
+        }
+    </script>
 </body>
 </html>

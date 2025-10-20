@@ -722,4 +722,26 @@ select:hover, input[type="text"]:hover, input[type="file"]:hover {
         width: 100%;
         justify-content: flex-start;
     }
+
+    .logout-section {
+        text-align: right;
+        margin-bottom: 1rem;
+    }
+
+    .logout-btn {
+        background: var(--danger);
+        color: var(--text-inverse);
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+
+    .logout-btn:hover {
+        background: var(--danger-hover);
+        transform: translateY(-1px);
+    }
 }
