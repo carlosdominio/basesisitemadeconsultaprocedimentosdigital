@@ -183,9 +183,9 @@ li.first-item {
 
 li.selected {
     background-color: #e3f2fd;
-    border: 2px solid #2196f3;
+    border: 2px solid var(--danger);
     border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
 }
 
 li.dragging {
@@ -627,9 +627,6 @@ select:hover, input[type="text"]:hover, input[type="file"]:hover {
     cursor: pointer;
 }
 
-.procedure-item:hover {
-    background: var(--surface);
-}
 
 .procedure-item.selected {
     background: var(--primary-light);
