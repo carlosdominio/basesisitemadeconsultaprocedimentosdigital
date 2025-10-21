@@ -9,33 +9,41 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="app-wrapper">
-        <header class="main-header">
-            <h1>Sistema de Consulta de Procedimentos</h1>
-            <p>Faça login para acessar o sistema</p>
-        </header>
+    <div class="login-wrapper">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>🔐 Sistema de Consulta de Procedimentos</h1>
+                <p>Faça login para acessar o sistema</p>
+            </div>
 
-        <main class="content-grid">
-            <section class="section-card">
-                <h2 class="section-header">🔐 Login</h2>
-                <div class="section-content">
-                    <form id="loginForm" class="form-group">
-                        <div class="form-group">
-                            <label for="username">Usuário</label>
-                            <input type="text" id="username" name="username" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Senha</label>
-                            <input type="password" id="password" name="password" required>
-                        </div>
-                        <div class="button-group">
-                            <button type="submit" class="btn-primary">Entrar</button>
-                        </div>
-                    </form>
-                    <div id="loginMessage" class="form-group" style="display: none;"></div>
+            <div class="login-form-container">
+                <form id="loginForm" class="login-form">
+                    <div class="form-group">
+                        <label for="username">👤 Usuário</label>
+                        <input type="text" id="username" name="username" placeholder="Digite seu usuário" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">🔒 Senha</label>
+                        <input type="password" id="password" name="password" placeholder="Digite sua senha" required>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn-primary btn-login">Entrar no Sistema</button>
+                    </div>
+                </form>
+                <div id="loginMessage" class="login-message" style="display: none;"></div>
+            </div>
+
+            <div class="login-info">
+                <div class="info-card">
+                    <h3>📋 Informações de Acesso</h3>
+                    <div class="credentials">
+                        <p><strong>Usuário:</strong> admin</p>
+                        <p><strong>Senha:</strong> admin123</p>
+                    </div>
+                    <p class="info-note">Use essas credenciais para testar o sistema</p>
                 </div>
-            </section>
-        </main>
+            </div>
+        </div>
     </div>
 
     <script src="login.js"></script>

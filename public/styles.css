@@ -664,6 +664,159 @@ select:hover, input[type="text"]:hover, input[type="file"]:hover {
 .btn-icon:hover {
     transform: scale(1.1);
 }
+/* Login Page Styles */
+.login-wrapper {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-lg);
+}
+
+.login-container {
+    background: var(--card);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    max-width: 450px;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.login-header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+    color: var(--text-inverse);
+    padding: var(--spacing-3xl) var(--spacing-xl);
+    text-align: center;
+}
+
+.login-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 var(--spacing-md) 0;
+    letter-spacing: -0.025em;
+}
+
+.login-header p {
+    font-size: 1rem;
+    font-weight: 400;
+    margin: 0;
+    opacity: 0.9;
+}
+
+.login-form-container {
+    padding: var(--spacing-3xl);
+}
+
+.login-form {
+    margin-bottom: var(--spacing-xl);
+}
+
+.login-form .form-group {
+    margin-bottom: var(--spacing-xl);
+}
+
+.login-form label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.login-form input[type="text"],
+.login-form input[type="password"] {
+    width: 100%;
+    padding: var(--spacing-lg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-lg);
+    font-size: 1rem;
+    transition: var(--transition);
+    background: var(--card);
+    color: var(--text-primary);
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.login-form input[type="text"]:focus,
+.login-form input[type="password"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.btn-login {
+    width: 100%;
+    padding: var(--spacing-lg);
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+.login-message {
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    font-weight: 500;
+    margin-top: var(--spacing-lg);
+}
+
+.login-message.error {
+    background-color: rgba(220, 38, 38, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.login-message.success {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: var(--accent);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.login-info {
+    background: var(--surface);
+    padding: var(--spacing-xl);
+    border-top: 1px solid var(--border);
+}
+
+.info-card {
+    text-align: center;
+}
+
+.info-card h3 {
+    margin: 0 0 var(--spacing-lg) 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.credentials {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.credentials p {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+.credentials p:last-child {
+    margin-bottom: 0;
+}
+
+.info-note {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
 
 @media (max-width: 768px) {
     .app-wrapper {
@@ -717,4 +870,29 @@ select:hover, input[type="text"]:hover, input[type="file"]:hover {
         width: 100%;
         justify-content: flex-start;
     }
+
+    .login-wrapper {
+        padding: var(--spacing-md);
+    }
+
+    .login-container {
+        max-width: 100%;
+    }
+
+    .login-header {
+        padding: var(--spacing-xl);
+    }
+
+    .login-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .login-form-container {
+        padding: var(--spacing-xl);
+    }
+
+    .login-info {
+        padding: var(--spacing-lg);
+    }
+
 }
