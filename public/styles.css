@@ -100,8 +100,10 @@ body {
 .header-actions {
     position: absolute;
     top: 50%;
-    right: 0;
+    right: 60px;
     transform: translateY(-50%);
+    color: red;
+    font-size: 18px;
 }
 
 .main-header h1 {
