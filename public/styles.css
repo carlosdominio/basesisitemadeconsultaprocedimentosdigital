@@ -90,6 +90,17 @@ body {
 .main-header {
     margin-top: 40px;
     margin-bottom: 55px;
+    position: relative;
+}
+
+.header-content {
+    text-align: center;
+}
+
+.header-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
 }
 
 .main-header h1 {
