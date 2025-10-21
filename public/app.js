@@ -1,3 +1,19 @@
+// Check if user is logged in
+if (!localStorage.getItem('isLoggedIn')) {
+    window.location.href = 'login.html';
+}
+
+// Logout functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('username');
+            window.location.href = 'login.html';
+        });
+    }
+});
 const API_URL = '/api';
 
 // Elementos DOM
