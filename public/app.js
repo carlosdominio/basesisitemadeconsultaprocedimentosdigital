@@ -21,10 +21,11 @@ if (!localStorage.getItem('isLoggedIn')) {
     window.location.href = 'login.html';
 }
 
-const authChecked = await checkAuth();
-if (!authChecked) {
-    throw new Error('Authentication failed');
-}
+const authChecked = checkAuth().then(authenticated => {
+    if (!authenticated) {
+        throw new Error('Authentication failed');
+    }
+});
 
 document.addEventListener('DOMContentLoaded', async function() {
     const isAuthenticated = await checkAuth();
