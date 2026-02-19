@@ -1,13 +1,34 @@
-// Check if user is logged in
+async function checkAuth() {
+    try {
+        const response = await fetch('/api/auth/check');
+        const data = await response.json();
+        if (!data.authenticated) {
+            window.location.href = 'login.html';
+            return false;
+        }
+        return true;
+    } catch (error) {
+        window.location.href = 'login.html';
+        return false;
+    }
+}
+
 if (!localStorage.getItem('isLoggedIn')) {
     window.location.href = 'login.html';
 }
 
-// Logout functionality
-document.addEventListener('DOMContentLoaded', function() {
+checkAuth();
+
+document.addEventListener('DOMContentLoaded', async function() {
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) return;
+
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', function() {
+        logoutBtn.addEventListener('click', async function() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+            } catch (e) {}
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('username');
             window.location.href = 'login.html';
