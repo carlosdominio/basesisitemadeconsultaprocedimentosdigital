@@ -223,6 +223,24 @@ app.post('/api/auth/logout', (req, res) => {
     });
 });
 
+app.post('/api/auth/reset-admin', async (req, res) => {
+    try {
+        const { password } = req.body;
+        const newPassword = password || 'Anovasenhae8763';
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        
+        await pool.query(`
+            INSERT INTO users (username, password_hash) 
+            VALUES ('admin', $1) 
+            ON CONFLICT (username) DO UPDATE SET password_hash = $1
+        `, [hashedPassword]);
+        
+        res.json({ message: 'Senha do admin redefinida com sucesso', username: 'admin', password: newPassword });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/auth/check', (req, res) => {
     if (req.session && req.session.userId) {
         res.json({ authenticated: true, username: req.session.username });
