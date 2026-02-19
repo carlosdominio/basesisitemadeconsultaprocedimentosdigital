@@ -1,5 +1,6 @@
 // Check if user is logged in
-if (!localStorage.getItem('isLoggedIn')) {
+const sessionId = localStorage.getItem('sessionId');
+if (!sessionId) {
     window.location.href = 'login.html';
 }
 
@@ -7,14 +8,24 @@ if (!localStorage.getItem('isLoggedIn')) {
 document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', function() {
-            localStorage.removeItem('isLoggedIn');
+        logoutBtn.addEventListener('click', async function() {
+            await fetch('/api/logout', {
+                method: 'POST',
+                headers: { 'x-session-id': sessionId }
+            });
+            localStorage.removeItem('sessionId');
             localStorage.removeItem('username');
             window.location.href = 'login.html';
         });
     }
 });
 const API_URL = '/api';
+
+function getSessionHeaders() {
+    return {
+        'x-session-id': localStorage.getItem('sessionId') || ''
+    };
+}
 
 // Elementos DOM
 const clientSelect = document.getElementById('clientSelect');
@@ -68,7 +79,24 @@ const imageClose = document.getElementsByClassName('image-close')[0];
 
 async function fetchData(url, options = {}) {
     try {
+        const sessionId = localStorage.getItem('sessionId');
+        if (!sessionId) {
+            window.location.href = 'login.html';
+            return null;
+        }
+        
+        options.headers = {
+            ...options.headers,
+            'x-session-id': sessionId
+        };
+        
         const response = await fetch(url, options);
+        if (response.status === 401) {
+            localStorage.removeItem('sessionId');
+            localStorage.removeItem('username');
+            window.location.href = 'login.html';
+            return null;
+        }
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);

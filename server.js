@@ -5,16 +5,39 @@ const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "blob:"],
+        },
+    },
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+    },
+}));
 
-// CORS configurado de forma mais restritiva
+// CORS configurado de forma restritiva para produção
 const corsOptions = {
-    origin: process.env.ALLOWED_ORIGIN || true, // Em produção, especificar o domínio
+    origin: function (origin, callback) {
+        const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [];
+        // Permitir requisições sem origin (como Postman) apenas em desenvolvimento
+        if (!origin || process.env.NODE_ENV !== 'production' || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Origem não permitida'));
+        }
+    },
     credentials: true,
     optionsSuccessStatus: 200
 };
@@ -74,6 +97,19 @@ const sanitizeParams = (req, res, next) => {
     next();
 };
 
+// Middleware para tratar erros e não expor detalhes internos
+const errorHandler = (err, req, res, next) => {
+    console.error('Erro:', err.message);
+    
+    // Em produção, não expor detalhes do erro
+    if (process.env.NODE_ENV === 'production') {
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    } else {
+        // Em desenvolvimento, mostrar erro detalhado
+        res.status(500).json({ error: err.message });
+    }
+};
+
 // Middleware
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
@@ -84,6 +120,47 @@ app.use('/api', apiLimiter);
 
 // Middleware de sanitização para todas as rotas API
 app.use('/api', sanitizeParams);
+
+// Force HTTPS em produção
+if (process.env.NODE_ENV === 'production') {
+    app.use((req, res, next) => {
+        if (req.header('X-Forwarded-Proto') !== 'https') {
+            res.redirect(`https://${req.header('host')}${req.url}`);
+        } else {
+            next();
+        }
+    });
+}
+
+// Sessions com crypto seguro
+const crypto = require('crypto');
+const sessions = new Map();
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex');
+const SESSION_EXPIRY = 60 * 60 * 1000; // 1 hora
+const SESSION_REFRESH = 5 * 60 * 1000; // Renova a cada 5 min se ativo
+
+// Middleware de autenticação
+const requireAuth = (req, res, next) => {
+    const sessionId = req.headers['x-session-id'];
+    if (!sessionId) {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+    
+    const session = sessions.get(sessionId);
+    if (!session || Date.now() > session.expiresAt) {
+        if (session) sessions.delete(sessionId);
+        return res.status(401).json({ error: 'Sessão expirada' });
+    }
+    
+    // Renova sessão automaticamente se ativo
+    if (Date.now() - session.lastActivity > SESSION_REFRESH) {
+        session.lastActivity = Date.now();
+        session.expiresAt = Date.now() + SESSION_EXPIRY;
+    }
+    
+    req.user = session.user;
+    next();
+};
 
 // Routes
 app.get('/', (req, res) => {
@@ -146,6 +223,13 @@ const pool = new Pool({
             procedure_text TEXT
         )`);
 
+        await pool.query(`CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
         // Insert default data if not exists
         const result = await pool.query("SELECT COUNT(*) as count FROM clients");
         if (parseInt(result.rows[0].count) === 0) {
@@ -158,8 +242,16 @@ const pool = new Pool({
             await pool.query("SELECT setval('additional_provider_procedures_id_seq', (SELECT MAX(id) FROM additional_provider_procedures))");
             await pool.query("SELECT setval('sinistro_procedures_id_seq', (SELECT MAX(id) FROM sinistro_procedures))");
         }
+
+        // Criar usuário admin padrão se não existir
+        const userResult = await pool.query("SELECT COUNT(*) as count FROM users");
+        if (parseInt(userResult.rows[0].count) === 0) {
+            const hashedPassword = await bcrypt.hash('K9#mP2$xL5!qR8@n', 12);
+            await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)", ['admin', hashedPassword]);
+            console.log('Usuário admin criado com senha segura.');
+        }
     } catch (err) {
-        console.error('Error initializing database:', err);
+        console.error('Error initializing database:', err.message);
     }
 })();
 
@@ -223,89 +315,153 @@ async function insertDefaultData() {
     }
 }
 
-// Routes
-app.get('/api/clients', async (req, res) => {
+// Login endpoint com autenticação real
+app.post('/api/login', loginLimiter, async (req, res, next) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
+        }
+
+        const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+        
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+        }
+
+        const user = result.rows[0];
+        const validPassword = await bcrypt.compare(password, user.password);
+        
+        if (!validPassword) {
+            return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+        }
+
+        // Criar sessão
+        const sessionId = require('crypto').randomUUID();
+        sessions.set(sessionId, {
+            user: { id: user.id, username: user.username },
+            expiresAt: Date.now() + SESSION_EXPIRY,
+            lastActivity: Date.now()
+        });
+
+        res.json({ 
+            sessionId, 
+            user: { id: user.id, username: user.username },
+            expiresAt: SESSION_EXPIRY
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// Logout endpoint
+app.post('/api/logout', (req, res) => {
+    const sessionId = req.headers['x-session-id'];
+    if (sessionId) {
+        sessions.delete(sessionId);
+    }
+    res.json({ message: 'Logout realizado' });
+});
+
+// Verify session endpoint
+app.get('/api/verify-session', (req, res) => {
+    const sessionId = req.headers['x-session-id'];
+    if (!sessionId) {
+        return res.status(401).json({ valid: false });
+    }
+    
+    const session = sessions.get(sessionId);
+    if (!session || Date.now() > session.expiresAt) {
+        if (session) sessions.delete(sessionId);
+        return res.status(401).json({ valid: false });
+    }
+    
+    res.json({ valid: true, user: session.user });
+});
+
+// Rotas autenticadas
+app.get('/api/clients', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM clients");
         res.json(result.rows);
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao buscar clientes'});
     }
 });
 
-app.get('/api/clients/:id/procedures', async (req, res) => {
+app.get('/api/clients/:id/procedures', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM client_procedures WHERE client_id = $1 ORDER BY order_index", [req.params.id]);
         res.json(result.rows);
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao buscar procedimentos'});
     }
 });
 
-app.get('/api/providers', async (req, res) => {
+app.get('/api/providers', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM providers");
         res.json(result.rows);
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao buscar prestadores'});
     }
 });
 
-app.get('/api/providers/:id/procedures/:sinistro', async (req, res) => {
+app.get('/api/providers/:id/procedures/:sinistro', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM provider_procedures WHERE provider_id = $1 AND sinistro_type = $2 ORDER BY order_index", [req.params.id, req.params.sinistro]);
         res.json(result.rows);
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao buscar procedimentos'});
     }
 });
 
-app.get('/api/providers/:id/additional-procedures/:sinistro', async (req, res) => {
+app.get('/api/providers/:id/additional-procedures/:sinistro', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM additional_provider_procedures WHERE provider_id = $1 AND sinistro_type = $2 ORDER BY order_index", [req.params.id, req.params.sinistro]);
         res.json(result.rows);
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao buscar procedimentos'});
     }
 });
 
 // Add provider
-app.post('/api/providers', async (req, res) => {
+app.post('/api/providers', requireAuth, async (req, res) => {
     try {
         const { name, image } = req.body;
         const result = await pool.query("INSERT INTO providers (name, image) VALUES ($1, $2) RETURNING id", [name, image || '']);
         res.json({id: result.rows[0].id});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao adicionar prestador'});
     }
 });
 
 // Edit provider
-app.put('/api/providers/:id', async (req, res) => {
+app.put('/api/providers/:id', requireAuth, async (req, res) => {
     try {
         const { name, image } = req.body;
         const result = await pool.query("UPDATE providers SET name = $1, image = $2 WHERE id = $3", [name, image || '', req.params.id]);
         res.json({changes: result.rowCount});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao editar prestador'});
     }
 });
 
 // Delete provider
-app.delete('/api/providers/:id', async (req, res) => {
+app.delete('/api/providers/:id', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("DELETE FROM providers WHERE id = $1", [req.params.id]);
         res.json({changes: result.rowCount});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao excluir prestador'});
     }
 });
 
 // Add client
-app.post('/api/clients', async (req, res) => {
+app.post('/api/clients', requireAuth, async (req, res) => {
     try {
         const { name } = req.body;
-        // Check if client with same name already exists
         const existing = await pool.query("SELECT id FROM clients WHERE name = $1", [name]);
         if (existing.rows.length > 0) {
             return res.status(400).json({error: "Cliente com este nome já existe."});
@@ -313,34 +469,34 @@ app.post('/api/clients', async (req, res) => {
         const result = await pool.query("INSERT INTO clients (name) VALUES ($1) RETURNING id", [name]);
         res.json({id: result.rows[0].id});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao adicionar cliente'});
     }
 });
 
 // Edit client
-app.put('/api/clients/:id', async (req, res) => {
+app.put('/api/clients/:id', requireAuth, async (req, res) => {
     try {
         const { name } = req.body;
         const result = await pool.query("UPDATE clients SET name = $1 WHERE id = $2", [name, req.params.id]);
         res.json({changes: result.rowCount});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao editar cliente'});
     }
 });
 
 // Delete client
-app.delete('/api/clients/:id', async (req, res) => {
+app.delete('/api/clients/:id', requireAuth, async (req, res) => {
     try {
         await pool.query("DELETE FROM client_procedures WHERE client_id = $1", [req.params.id]);
         const result = await pool.query("DELETE FROM clients WHERE id = $1", [req.params.id]);
         res.json({changes: result.rowCount});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao excluir cliente'});
     }
 });
 
 // Add client procedure
-app.post('/api/clients/:id/procedures', async (req, res) => {
+app.post('/api/clients/:id/procedures', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const maxOrder = await pool.query("SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM client_procedures WHERE client_id = $1", [req.params.id]);
@@ -348,23 +504,23 @@ app.post('/api/clients/:id/procedures', async (req, res) => {
         const result = await pool.query("INSERT INTO client_procedures (client_id, procedure_text, order_index) VALUES ($1, $2, $3) RETURNING id", [req.params.id, procedure_text, orderIndex]);
         res.json({id: result.rows[0].id});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao adicionar procedimento'});
     }
 });
 
 // Edit client procedure
-app.put('/api/clients/:id/procedures/:procId', async (req, res) => {
+app.put('/api/clients/:id/procedures/:procId', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const result = await pool.query("UPDATE client_procedures SET procedure_text = $1 WHERE id = $2 AND client_id = $3", [procedure_text, req.params.procId, req.params.id]);
         res.json({changes: result.rowCount});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao editar procedimento'});
     }
 });
 
 // Reorder client procedures
-app.put('/api/clients/:id/reorder-procedures', async (req, res) => {
+app.put('/api/clients/:id/reorder-procedures', requireAuth, async (req, res) => {
     try {
         const { ids } = req.body;
         for (let i = 0; i < ids.length; i++) {
@@ -372,22 +528,22 @@ app.put('/api/clients/:id/reorder-procedures', async (req, res) => {
         }
         res.json({message: 'Reordered successfully'});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao reordenar procedimentos'});
     }
 });
 
 // Delete client procedure
-app.delete('/api/clients/:id/procedures/:procId', async (req, res) => {
+app.delete('/api/clients/:id/procedures/:procId', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("DELETE FROM client_procedures WHERE id = $1 AND client_id = $2", [req.params.procId, req.params.id]);
         res.json({changes: result.rowCount});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao excluir procedimento'});
     }
 });
 
 // Add provider procedure
-app.post('/api/providers/:id/procedures/:sinistro', async (req, res) => {
+app.post('/api/providers/:id/procedures/:sinistro', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const maxOrder = await pool.query("SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM provider_procedures WHERE provider_id = $1 AND sinistro_type = $2", [req.params.id, req.params.sinistro]);
@@ -395,23 +551,23 @@ app.post('/api/providers/:id/procedures/:sinistro', async (req, res) => {
         const result = await pool.query("INSERT INTO provider_procedures (provider_id, sinistro_type, procedure_text, order_index) VALUES ($1, $2, $3, $4) RETURNING id", [req.params.id, req.params.sinistro, procedure_text, orderIndex]);
         res.json({id: result.rows[0].id});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao adicionar procedimento'});
     }
 });
 
 // Edit provider procedure
-app.put('/api/providers/:id/procedures/:procId', async (req, res) => {
+app.put('/api/providers/:id/procedures/:procId', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const result = await pool.query("UPDATE provider_procedures SET procedure_text = $1 WHERE id = $2 AND provider_id = $3", [procedure_text, req.params.procId, req.params.id]);
         res.json({changes: result.rowCount});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao editar procedimento'});
     }
 });
 
 // Reorder provider procedures
-app.put('/api/providers/:id/procedures/:sinistro/reorder', async (req, res) => {
+app.put('/api/providers/:id/procedures/:sinistro/reorder', requireAuth, async (req, res) => {
     try {
         const { ids } = req.body;
         for (let i = 0; i < ids.length; i++) {
@@ -419,22 +575,22 @@ app.put('/api/providers/:id/procedures/:sinistro/reorder', async (req, res) => {
         }
         res.json({message: 'Reordered successfully'});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao reordenar procedimentos'});
     }
 });
 
 // Delete provider procedure
-app.delete('/api/providers/:id/procedures/:procId', async (req, res) => {
+app.delete('/api/providers/:id/procedures/:procId', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("DELETE FROM provider_procedures WHERE id = $1 AND provider_id = $2", [req.params.procId, req.params.id]);
         res.json({changes: result.rowCount});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao excluir procedimento'});
     }
 });
 
 // Add additional provider procedure
-app.post('/api/providers/:id/additional-procedures/:sinistro', async (req, res) => {
+app.post('/api/providers/:id/additional-procedures/:sinistro', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const maxOrder = await pool.query("SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM additional_provider_procedures WHERE provider_id = $1 AND sinistro_type = $2", [req.params.id, req.params.sinistro]);
@@ -442,23 +598,23 @@ app.post('/api/providers/:id/additional-procedures/:sinistro', async (req, res) 
         const result = await pool.query("INSERT INTO additional_provider_procedures (provider_id, sinistro_type, procedure_text, order_index) VALUES ($1, $2, $3, $4) RETURNING id", [req.params.id, req.params.sinistro, procedure_text, orderIndex]);
         res.json({id: result.rows[0].id});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao adicionar procedimento'});
     }
 });
 
 // Edit additional provider procedure
-app.put('/api/providers/:id/additional-procedures/:procId', async (req, res) => {
+app.put('/api/providers/:id/additional-procedures/:procId', requireAuth, async (req, res) => {
     try {
         const { procedure_text } = req.body;
         const result = await pool.query("UPDATE additional_provider_procedures SET procedure_text = $1 WHERE id = $2 AND provider_id = $3", [procedure_text, req.params.procId, req.params.id]);
         res.json({changes: result.rowCount});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao editar procedimento'});
     }
 });
 
 // Reorder additional provider procedures
-app.put('/api/providers/:id/additional-procedures/:sinistro/reorder', async (req, res) => {
+app.put('/api/providers/:id/additional-procedures/:sinistro/reorder', requireAuth, async (req, res) => {
     try {
         const { ids } = req.body;
         for (let i = 0; i < ids.length; i++) {
@@ -466,26 +622,25 @@ app.put('/api/providers/:id/additional-procedures/:sinistro/reorder', async (req
         }
         res.json({message: 'Reordered successfully'});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao reordenar procedimentos'});
     }
 });
 
 // Delete additional provider procedure
-app.delete('/api/providers/:id/additional-procedures/:procId', async (req, res) => {
+app.delete('/api/providers/:id/additional-procedures/:procId', requireAuth, async (req, res) => {
     try {
         const result = await pool.query("DELETE FROM additional_provider_procedures WHERE id = $1 AND provider_id = $2", [req.params.procId, req.params.id]);
         res.json({changes: result.rowCount});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao excluir procedimento'});
     }
 });
 
 // Move procedure up
-app.put('/api/clients/:clientId/procedures/:procId/move-up', async (req, res) => {
+app.put('/api/clients/:clientId/procedures/:procId/move-up', requireAuth, async (req, res) => {
     try {
         const { clientId, procId } = req.params;
 
-        // Get current procedure order_index
         const currentProc = await pool.query("SELECT order_index FROM client_procedures WHERE id = $1 AND client_id = $2", [procId, clientId]);
         if (currentProc.rows.length === 0) {
             return res.status(404).json({error: 'Procedure not found'});
@@ -496,7 +651,6 @@ app.put('/api/clients/:clientId/procedures/:procId/move-up', async (req, res) =>
             return res.json({message: 'Already at the top'});
         }
 
-        // Swap with the procedure above
         await pool.query(`
             UPDATE client_procedures
             SET order_index = CASE
@@ -508,16 +662,15 @@ app.put('/api/clients/:clientId/procedures/:procId/move-up', async (req, res) =>
 
         res.json({message: 'Procedure moved up'});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao mover procedimento'});
     }
 });
 
 // Move procedure down
-app.put('/api/clients/:clientId/procedures/:procId/move-down', async (req, res) => {
+app.put('/api/clients/:clientId/procedures/:procId/move-down', requireAuth, async (req, res) => {
     try {
         const { clientId, procId } = req.params;
 
-        // Get current procedure order_index
         const currentProc = await pool.query("SELECT order_index FROM client_procedures WHERE id = $1 AND client_id = $2", [procId, clientId]);
         if (currentProc.rows.length === 0) {
             return res.status(404).json({error: 'Procedure not found'});
@@ -525,7 +678,6 @@ app.put('/api/clients/:clientId/procedures/:procId/move-down', async (req, res) 
 
         const currentOrder = currentProc.rows[0].order_index;
 
-        // Get max order_index for this client
         const maxOrder = await pool.query("SELECT MAX(order_index) as max_order FROM client_procedures WHERE client_id = $1", [clientId]);
         const maxOrderValue = maxOrder.rows[0].max_order;
 
@@ -533,7 +685,6 @@ app.put('/api/clients/:clientId/procedures/:procId/move-down', async (req, res) 
             return res.json({message: 'Already at the bottom'});
         }
 
-        // Swap with the procedure below
         await pool.query(`
             UPDATE client_procedures
             SET order_index = CASE
@@ -545,8 +696,11 @@ app.put('/api/clients/:clientId/procedures/:procId/move-down', async (req, res) 
 
         res.json({message: 'Procedure moved down'});
     } catch (err) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: 'Erro ao mover procedimento'});
     }
 });
+
+// Error handler middleware (deve ser último)
+app.use(errorHandler);
 
 module.exports = app;
