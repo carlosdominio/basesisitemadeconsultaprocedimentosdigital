@@ -3,22 +3,94 @@ const { Pool } = require('pg');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Security middleware
+app.use(helmet());
+
+// CORS configurado de forma mais restritiva
+const corsOptions = {
+    origin: process.env.ALLOWED_ORIGIN || true, // Em produção, especificar o domínio
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// Rate limiting geral para API
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // 100 requisições por IP
+    message: { error: 'Muitas requisições. Tente novamente mais tarde.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Rate limiting mais restritivo para login
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 5, // 5 tentativas de login por IP
+    message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Função para sanitizar entrada e prevenir SQL injection/XSS
+const sanitizeInput = (value) => {
+    if (typeof value !== 'string') return value;
+    // Não sanitizar dados que parecem ser base64 (usados para imagens)
+    if (value.startsWith('data:image/') || /^[A-Za-z0-9+/=]+$/.test(value)) {
+        return value;
+    }
+    return value.replace(/[<>'";&]/g, '').trim();
+};
+
+// Middleware para sanitizar parâmetros de entrada
+const sanitizeParams = (req, res, next) => {
+    if (req.params) {
+        for (const key in req.params) {
+            if (req.params[key] && typeof req.params[key] === 'string') {
+                req.params[key] = sanitizeInput(req.params[key]);
+            }
+        }
+    }
+    if (req.body) {
+        for (const key in req.body) {
+            if (req.body[key] && typeof req.body[key] === 'string') {
+                req.body[key] = sanitizeInput(req.body[key]);
+            }
+        }
+    }
+    if (req.query) {
+        for (const key in req.query) {
+            if (req.query[key] && typeof req.query[key] === 'string') {
+                req.query[key] = sanitizeInput(req.query[key]);
+            }
+        }
+    }
+    next();
+};
+
 // Middleware
-app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Aplicar rate limiting na API
+app.use('/api', apiLimiter);
+
+// Middleware de sanitização para todas as rotas API
+app.use('/api', sanitizeParams);
 
 // Routes
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
 
-app.get('/login', (req, res) => {
+app.get('/login', loginLimiter, (req, res) => {
     res.sendFile(__dirname + '/public/login.html');
 });
 
