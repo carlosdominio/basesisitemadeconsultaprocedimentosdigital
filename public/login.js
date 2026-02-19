@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const password = document.getElementById('password').value;
 
         // Simple authentication (in production, this should be server-side)
-        if (username === 'admin' && password === 'admin123') {
+        if (username === 'admin' && password === 'Anovasenhae8763') {
             // Store login status
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('username', username);
