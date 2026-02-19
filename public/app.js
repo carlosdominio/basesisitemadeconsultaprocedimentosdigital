@@ -3,11 +3,15 @@ async function checkAuth() {
         const response = await fetch('/api/auth/check');
         const data = await response.json();
         if (!data.authenticated) {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('username');
             window.location.href = 'login.html';
             return false;
         }
         return true;
     } catch (error) {
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('username');
         window.location.href = 'login.html';
         return false;
     }
@@ -17,7 +21,10 @@ if (!localStorage.getItem('isLoggedIn')) {
     window.location.href = 'login.html';
 }
 
-checkAuth();
+const authChecked = await checkAuth();
+if (!authChecked) {
+    throw new Error('Authentication failed');
+}
 
 document.addEventListener('DOMContentLoaded', async function() {
     const isAuthenticated = await checkAuth();
@@ -90,6 +97,12 @@ const imageClose = document.getElementsByClassName('image-close')[0];
 async function fetchData(url, options = {}) {
     try {
         const response = await fetch(url, options);
+        if (response.status === 401) {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('username');
+            window.location.href = 'login.html';
+            return null;
+        }
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
