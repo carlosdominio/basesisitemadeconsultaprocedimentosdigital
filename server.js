@@ -132,7 +132,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const crypto = require('crypto');
-const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex');
+const SESSION_SECRET = process.env.SESSION_SECRET || 'sistema-consulta-procedimentos-2026-secret-key';
 const SESSION_EXPIRY = 60 * 60 * 1000; // 1 hora
 
 // Função para criar token JWT simples
