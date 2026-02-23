@@ -19,6 +19,7 @@ app.use(helmet({
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             scriptSrc: ["'self'", "https://vercel.live"],
             imgSrc: ["'self'", "data:", "blob:"],
+            frameSrc: ["'self'", "https://vercel.live"],
         },
     },
     hsts: {
