@@ -338,8 +338,7 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
 
         // Credenciais hardcoded para teste (em produção, usar banco)
         const validUsers = {
-            'admin': 'K9#mP2$xL5!qR8@n',
-            'teste': 'teste123'
+            'admin': 'Anovasenhae8763'
         };
 
         if (!validUsers[username] || validUsers[username] !== password) {
