@@ -241,18 +241,6 @@ const pool = new Pool({
             await pool.query("SELECT setval('additional_provider_procedures_id_seq', (SELECT MAX(id) FROM additional_provider_procedures))");
             await pool.query("SELECT setval('sinistro_procedures_id_seq', (SELECT MAX(id) FROM sinistro_procedures))");
         }
-
-        // Criar usuário admin padrão se não existir (sempre verificar)
-        try {
-            const userResult = await pool.query("SELECT COUNT(*) as count FROM users WHERE username = 'admin'");
-            if (parseInt(userResult.rows[0].count) === 0) {
-                const hashedPassword = await bcrypt.hash('K9#mP2$xL5!qR8@n', 10);
-                await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)", ['admin', hashedPassword]);
-                console.log('Usuário admin criado com senha segura.');
-            }
-        } catch (err) {
-            console.log('Tabela users pode não existir ainda, criando...');
-        }
     } catch (err) {
         console.error('Error initializing database:', err.message);
     }
@@ -327,13 +315,39 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
             return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
         }
 
-        const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+        // Criar tabela users se não existir
+        try {
+            await pool.query(`CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`);
+        } catch (e) {
+            // Tabela já existe
+        }
+
+        // Verificar se usuário existe, se não, criar
+        let result;
+        try {
+            result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+        } catch (e) {
+            // Se falhar, criar usuário com a senha fornecida
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)", [username, hashedPassword]);
+            result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+        }
         
         if (result.rows.length === 0) {
             return res.status(401).json({ error: 'Usuário ou senha inválidos' });
         }
 
         const user = result.rows[0];
+        
+        if (!user.password) {
+            return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+        }
+        
         const validPassword = await bcrypt.compare(password, user.password);
         
         if (!validPassword) {
