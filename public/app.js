@@ -159,61 +159,7 @@ async function showProcedures(clientId) {
 
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'procedure-content';
-                contentDiv.innerHTML = proc.procedure_text;
-                if (proc.image_data) {
-                    contentDiv.innerHTML += `<br><img src="${proc.image_data}" alt="Imagem do procedimento" style="max-width: 100%; height: auto; margin-top: 0.5rem; border-radius: 4px;">`;
-                }
-
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'procedure-actions';
-                actionsDiv.innerHTML = `
-                    <button class="btn btn-icon move-up-btn" data-proc-id="${proc.id}" title="Mover para cima">↑</button>
-                    <button class="btn btn-icon move-down-btn" data-proc-id="${proc.id}" title="Mover para baixo">↓</button>
-                    <button class="btn btn-icon btn-secondary edit-icon" data-proc-id="${proc.id}" title="Editar procedimento">✏️</button>
-                `;
-
-                li.appendChild(contentDiv);
-                li.appendChild(actionsDiv);
-
-                li.dataset.id = proc.id;
-                li.dataset.index = index;
-
-                li.addEventListener('click', (e) => {
-                    // Se clicou nos botões, não seleciona o item
-                    if (e.target.closest('.procedure-actions')) {
-                        return;
-                    }
-                    // Remove selected from others
-                    document.querySelectorAll('#proceduresList li').forEach(el => el.classList.remove('selected'));
-                    li.classList.add('selected');
-                });
-
-                proceduresList.appendChild(li);
-            });
-        }
-        proceduresContainer.style.display = 'block';
-    }
-}
-
-
-
-async function showProviderProcedures(providerId, sinistroType) {
-    if (!providerId || !sinistroType) {
-        providerProceduresContainer.style.display = 'none';
-        return;
-    }
-    const procedures = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistroType}`);
-    providerProceduresList.innerHTML = '';
-    const capitalizedSinistro = sinistroType.charAt(0).toUpperCase() + sinistroType.slice(1);
-    providerProceduresTitle.innerHTML = `Procedimentos Demais CLIENTES <span class="sinistro-red">${capitalizedSinistro}</span>`;
-    if (procedures && procedures.length > 0) {
-        procedures.forEach((proc, index) => {
-            const li = document.createElement('li');
-            li.className = 'procedure-item';
-
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'procedure-content';
-            contentDiv.textContent = proc.procedure_text;
+                contentDiv.textContent = proc.procedure_text || '';
 
             li.appendChild(contentDiv);
             li.dataset.id = proc.id;
