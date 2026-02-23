@@ -31,6 +31,7 @@ function getSessionHeaders() {
 const clientSelect = document.getElementById('clientSelect');
 const proceduresContainer = document.getElementById('proceduresContainer');
 const proceduresList = document.getElementById('proceduresList');
+const procedureSearch = document.getElementById('procedureSearch');
 const addProcedureBtn = document.getElementById('addProcedureBtn');
 const deleteProcedureBtn = document.getElementById('deleteProcedureBtn');
 const addClientBtn = document.getElementById('addClientBtn');
@@ -317,6 +318,19 @@ document.addEventListener('DOMContentLoaded', () => {
     clientSelect.addEventListener('change', () => {
         showProcedures(clientSelect.value);
     });
+
+    procedureSearch.addEventListener('input', () => {
+        filterProcedures();
+    });
+
+    function filterProcedures() {
+        const searchTerm = procedureSearch.value.toLowerCase();
+        const items = proceduresList.querySelectorAll('.procedure-item');
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    }
 
     providerSelect.addEventListener('change', () => {
         const sinistro = sinistroSelect.value;
