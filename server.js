@@ -306,7 +306,7 @@ async function insertDefaultData() {
     }
 }
 
-// Login endpoint com autenticação real
+// Login endpoint - autenticação simples sem banco
 app.post('/api/login', loginLimiter, async (req, res, next) => {
     try {
         const { username, password } = req.body;
@@ -315,56 +315,27 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
             return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
         }
 
-        // Criar tabela users se não existir
-        try {
-            await pool.query(`CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )`);
-        } catch (e) {
-            // Tabela já existe
-        }
+        // Credenciais hardcoded para teste (em produção, usar banco)
+        const validUsers = {
+            'admin': 'K9#mP2$xL5!qR8@n',
+            'teste': 'teste123'
+        };
 
-        // Verificar se usuário existe, se não, criar
-        let result;
-        try {
-            result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
-        } catch (e) {
-            // Se falhar, criar usuário com a senha fornecida
-            const hashedPassword = await bcrypt.hash(password, 10);
-            await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)", [username, hashedPassword]);
-            result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
-        }
-        
-        if (result.rows.length === 0) {
-            return res.status(401).json({ error: 'Usuário ou senha inválidos' });
-        }
-
-        const user = result.rows[0];
-        
-        if (!user.password) {
-            return res.status(401).json({ error: 'Usuário ou senha inválidos' });
-        }
-        
-        const validPassword = await bcrypt.compare(password, user.password);
-        
-        if (!validPassword) {
+        if (!validUsers[username] || validUsers[username] !== password) {
             return res.status(401).json({ error: 'Usuário ou senha inválidos' });
         }
 
         // Criar sessão
         const sessionId = require('crypto').randomUUID();
         sessions.set(sessionId, {
-            user: { id: user.id, username: user.username },
+            user: { id: 1, username: username },
             expiresAt: Date.now() + SESSION_EXPIRY,
             lastActivity: Date.now()
         });
 
         res.json({ 
             sessionId, 
-            user: { id: user.id, username: user.username },
+            user: { id: 1, username: username },
             expiresAt: SESSION_EXPIRY
         });
     } catch (err) {
