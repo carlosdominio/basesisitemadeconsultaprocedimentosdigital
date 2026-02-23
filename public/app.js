@@ -70,6 +70,13 @@ const imageInput = document.getElementById('imageInput');
 const fontSizeSelect = document.getElementById('fontSizeSelect');
 const colorPicker = document.getElementById('colorPicker');
 
+const modalInput = document.getElementById('modalInput');
+modalInput.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
+});
+
 // Image modal elements
 const imageModal = document.getElementById('imageModal');
 const imageModalImg = document.getElementById('imageModalImg');
@@ -268,6 +275,21 @@ imageInput.addEventListener('change', (e) => {
 });
 fontSizeSelect.addEventListener('change', () => document.execCommand('fontSize', false, fontSizeSelect.value));
 colorPicker.addEventListener('change', () => document.execCommand('foreColor', false, colorPicker.value));
+
+const cleanBtn = document.getElementById('cleanBtn');
+cleanBtn.addEventListener('click', () => {
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const container = range.commonAncestorContainer.parentElement;
+        if (container && container.id === 'modalInput') {
+            document.execCommand('selectAll');
+            let text = window.getSelection().toString();
+            text = text.replace(/\s+/g, ' ').trim();
+            document.execCommand('insertText', false, text);
+        }
+    }
+});
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
