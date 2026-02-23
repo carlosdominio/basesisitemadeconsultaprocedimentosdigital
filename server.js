@@ -27,15 +27,14 @@ app.use(helmet({
     },
 }));
 
-// CORS configurado de forma restritiva para produção
+// CORS configurado de forma permissiva para permitir Vercel
 const corsOptions = {
     origin: function (origin, callback) {
-        const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [];
-        // Permitir requisições sem origin (como Postman) apenas em desenvolvimento
-        if (!origin || process.env.NODE_ENV !== 'production' || allowedOrigins.includes(origin)) {
+        // Permitir todas as origens em produção (Vercel usa origens dinâmicas)
+        if (!origin || process.env.NODE_ENV === 'production') {
             callback(null, true);
         } else {
-            callback(new Error('Origem não permitida'));
+            callback(null, true);
         }
     },
     credentials: true,
