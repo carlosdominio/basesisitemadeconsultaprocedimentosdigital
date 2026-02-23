@@ -67,14 +67,15 @@ const sanitizeInput = (value) => {
     if (value.startsWith('data:image/') || /^[A-Za-z0-9+/=]+$/.test(value)) {
         return value;
     }
-    // Não sanitizar procedure_text pois pode conter HTML válido
-    if (value.includes('</') || value.includes('/>')) {
+    // Se contém HTML, não sanitizar
+    if (value.includes('<') && value.includes('>')) {
         return value;
     }
+    // Caso contrário, sanitizar para prevenir SQL injection
     return value.replace(/[<>'";&]/g, '').trim();
 };
 
-// Middleware para sanitizar parâmetros de entrada
+// Middleware para sanitizar parâmetros de entrada (exceto procedure_text que pode ter HTML)
 const sanitizeParams = (req, res, next) => {
     if (req.params) {
         for (const key in req.params) {
@@ -85,8 +86,8 @@ const sanitizeParams = (req, res, next) => {
     }
     if (req.body) {
         for (const key in req.body) {
-            // Não sanitizar procedure_text pois pode conter HTML válido
-            if (key === 'procedure_text') continue;
+            // Não sanitizar procedure_text e name pois podem conter HTML ou nomes válidos
+            if (key === 'procedure_text' || key === 'name' || key === 'ids') continue;
             if (req.body[key] && typeof req.body[key] === 'string') {
                 req.body[key] = sanitizeInput(req.body[key]);
             }
