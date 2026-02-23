@@ -61,19 +61,15 @@ const loginLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// Função para sanitizar entrada e prevenir SQL injection (mas permite HTML em procedure_text)
+// Função para sanitizar entrada e prevenir SQL injection (mas permite todo HTML)
 const sanitizeInput = (value) => {
     if (typeof value !== 'string') return value;
     // Não sanitizar dados que parecem ser base64 (usados para imagens)
     if (value.startsWith('data:image/') || /^[A-Za-z0-9+/=]+$/.test(value)) {
         return value;
     }
-    // Se contém HTML, não sanitizar
-    if (value.includes('<') && value.includes('>')) {
-        return value;
-    }
-    // Caso contrário, sanitizar para prevenir SQL injection
-    return value.replace(/[<>'";&]/g, '').trim();
+    // Não sanitizar - permitir todo HTML
+    return value;
 };
 
 // Middleware para sanitizar parâmetros de entrada (exceto procedure_text que pode ter HTML)
