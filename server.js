@@ -242,20 +242,16 @@ const pool = new Pool({
             await pool.query("SELECT setval('sinistro_procedures_id_seq', (SELECT MAX(id) FROM sinistro_procedures))");
         }
 
-        // Criar usuário admin padrão se não existir ou atualizar senha
-        const userResult = await pool.query("SELECT COUNT(*) as count FROM users");
-        if (parseInt(userResult.rows[0].count) === 0) {
-            const hashedPassword = await bcrypt.hash('K9#mP2$xL5!qR8@n', 10);
-            await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)", ['admin', hashedPassword]);
-            console.log('Usuário admin criado com senha segura.');
-        } else {
-            // Verificar se precisa atualizar o hash (para compatibilidade com bcrypt -> bcryptjs)
-            const user = await pool.query("SELECT password FROM users WHERE username = $1", ['admin']);
-            if (user.rows.length > 0 && !user.rows[0].password.startsWith('$2')) {
+        // Criar usuário admin padrão se não existir (sempre verificar)
+        try {
+            const userResult = await pool.query("SELECT COUNT(*) as count FROM users WHERE username = 'admin'");
+            if (parseInt(userResult.rows[0].count) === 0) {
                 const hashedPassword = await bcrypt.hash('K9#mP2$xL5!qR8@n', 10);
-                await pool.query("UPDATE users SET password = $1 WHERE username = $2", [hashedPassword, 'admin']);
-                console.log('Senha do admin atualizada para bcryptjs.');
+                await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)", ['admin', hashedPassword]);
+                console.log('Usuário admin criado com senha segura.');
             }
+        } catch (err) {
+            console.log('Tabela users pode não existir ainda, criando...');
         }
     } catch (err) {
         console.error('Error initializing database:', err.message);
