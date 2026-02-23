@@ -70,12 +70,7 @@ const imageInput = document.getElementById('imageInput');
 const fontSizeSelect = document.getElementById('fontSizeSelect');
 const colorPicker = document.getElementById('colorPicker');
 
-// Adicionar event listener para paste sem duplicar
-modalInput.addEventListener('paste', (e) => {
-    e.preventDefault();
-    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-    document.execCommand('insertText', false, text);
-});
+// Permitir colar com formatação
 
 // Image modal elements
 const imageModal = document.getElementById('imageModal');
