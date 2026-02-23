@@ -159,21 +159,34 @@ async function showProcedures(clientId) {
 
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'procedure-content';
-                contentDiv.textContent = proc.procedure_text || '';
+                contentDiv.innerHTML = proc.procedure_text || '';
 
-            li.appendChild(contentDiv);
-            li.dataset.id = proc.id;
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'procedure-actions';
+                actionsDiv.innerHTML = `
+                    <button class="btn btn-icon move-up-btn" data-proc-id="${proc.id}" title="Mover para cima">↑</button>
+                    <button class="btn btn-icon move-down-btn" data-proc-id="${proc.id}" title="Mover para baixo">↓</button>
+                    <button class="btn btn-icon btn-secondary edit-icon" data-proc-id="${proc.id}" title="Editar procedimento">✏️</button>
+                `;
 
-            li.addEventListener('click', () => {
-                document.querySelectorAll('#providerProceduresList li').forEach(el => el.classList.remove('selected'));
-                li.classList.add('selected');
+                li.appendChild(contentDiv);
+                li.appendChild(actionsDiv);
+
+                li.dataset.id = proc.id;
+                li.dataset.index = index;
+
+                li.addEventListener('click', (e) => {
+                    if (e.target.closest('.procedure-actions')) {
+                        return;
+                    }
+                    document.querySelectorAll('#proceduresList li').forEach(el => el.classList.remove('selected'));
+                    li.classList.add('selected');
+                });
+
+                proceduresList.appendChild(li);
             });
-
-            providerProceduresList.appendChild(li);
-        });
-        providerProceduresContainer.style.display = 'block';
-    } else {
-        providerProceduresContainer.style.display = 'none';
+        }
+        proceduresContainer.style.display = 'block';
     }
 }
 
