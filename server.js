@@ -131,12 +131,35 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-// Sessions com crypto seguro
 const crypto = require('crypto');
-const sessions = new Map();
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex');
 const SESSION_EXPIRY = 60 * 60 * 1000; // 1 hora
-const SESSION_REFRESH = 5 * 60 * 1000; // Renova a cada 5 min se ativo
+
+// Função para criar token JWT simples
+function createToken(user) {
+    const payload = {
+        id: user.id,
+        username: user.username,
+        exp: Date.now() + SESSION_EXPIRY
+    };
+    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const signature = crypto.createHmac('sha256', SESSION_SECRET).update(encoded).digest('hex');
+    return `${encoded}.${signature}`;
+}
+
+// Função para verificar token
+function verifyToken(token) {
+    try {
+        const [encoded, signature] = token.split('.');
+        const expectedSig = crypto.createHmac('sha256', SESSION_SECRET).update(encoded).digest('hex');
+        if (signature !== expectedSig) return null;
+        const payload = JSON.parse(Buffer.from(encoded, 'base64').toString());
+        if (Date.now() > payload.exp) return null;
+        return payload;
+    } catch (e) {
+        return null;
+    }
+}
 
 // Middleware de autenticação
 const requireAuth = (req, res, next) => {
@@ -145,19 +168,12 @@ const requireAuth = (req, res, next) => {
         return res.status(401).json({ error: 'Não autorizado' });
     }
     
-    const session = sessions.get(sessionId);
-    if (!session || Date.now() > session.expiresAt) {
-        if (session) sessions.delete(sessionId);
-        return res.status(401).json({ error: 'Sessão expirada' });
+    const user = verifyToken(sessionId);
+    if (!user) {
+        return res.status(401).json({ error: 'Sessão expirada ou inválida' });
     }
     
-    // Renova sessão automaticamente se ativo
-    if (Date.now() - session.lastActivity > SESSION_REFRESH) {
-        session.lastActivity = Date.now();
-        session.expiresAt = Date.now() + SESSION_EXPIRY;
-    }
-    
-    req.user = session.user;
+    req.user = user;
     next();
 };
 
@@ -325,13 +341,8 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
             return res.status(401).json({ error: 'Usuário ou senha inválidos' });
         }
 
-        // Criar sessão
-        const sessionId = require('crypto').randomUUID();
-        sessions.set(sessionId, {
-            user: { id: 1, username: username },
-            expiresAt: Date.now() + SESSION_EXPIRY,
-            lastActivity: Date.now()
-        });
+        // Criar token JWT
+        const sessionId = createToken({ id: 1, username: username });
 
         res.json({ 
             sessionId, 
@@ -345,10 +356,6 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
 
 // Logout endpoint
 app.post('/api/logout', (req, res) => {
-    const sessionId = req.headers['x-session-id'];
-    if (sessionId) {
-        sessions.delete(sessionId);
-    }
     res.json({ message: 'Logout realizado' });
 });
 
@@ -359,13 +366,12 @@ app.get('/api/verify-session', (req, res) => {
         return res.status(401).json({ valid: false });
     }
     
-    const session = sessions.get(sessionId);
-    if (!session || Date.now() > session.expiresAt) {
-        if (session) sessions.delete(sessionId);
+    const user = verifyToken(sessionId);
+    if (!user) {
         return res.status(401).json({ valid: false });
     }
     
-    res.json({ valid: true, user: session.user });
+    res.json({ valid: true, user: { id: user.id, username: user.username } });
 });
 
 // Rotas autenticadas
