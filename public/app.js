@@ -415,28 +415,6 @@ function showModal(title, initialValue, callback) {
     };
 }
 
-// Editor commands
-boldBtn.addEventListener('click', () => document.execCommand('bold'));
-italicBtn.addEventListener('click', () => document.execCommand('italic'));
-underlineBtn.addEventListener('click', () => document.execCommand('underline'));
-imageBtn.addEventListener('click', () => {
-    imageInput.click();
-});
-
-imageInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const base64String = event.target.result;
-            document.execCommand('insertImage', false, base64String);
-        };
-        reader.readAsDataURL(file);
-    }
-});
-fontSizeSelect.addEventListener('change', () => document.execCommand('fontSize', false, fontSizeSelect.value));
-colorPicker.addEventListener('change', () => document.execCommand('foreColor', false, colorPicker.value));
-
 // Provider modal close events
 providerModalCancel.onclick = () => {
     providerModal.style.display = 'none';
