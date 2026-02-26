@@ -67,7 +67,7 @@ app.get('/test-login', (req, res) => {
 // Database
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false, sslmode: 'verify-full' } : false,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true, sslmode: 'verify-full' } : false,
 });
 
 // Initialize database
