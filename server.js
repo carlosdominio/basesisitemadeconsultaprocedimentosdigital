@@ -195,6 +195,9 @@ app.get('/login', loginLimiter, (req, res) => {
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000, // 10 segundos
+  idleTimeoutMillis: 30000, // 30 segundos
+  max: 20,
 });
 
 // Initialize database
@@ -361,6 +364,25 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
             return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
         }
 
+        // Fallback to hardcoded credentials if database is unavailable
+        if (!process.env.DATABASE_URL) {
+            console.log('Database URL not defined, using fallback credentials');
+            const validUsers = {
+                'admin': 'Anovasenhae8763'
+            };
+            
+            if (!validUsers[username] || validUsers[username] !== password) {
+                return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+            }
+            
+            const sessionId = createToken({ id: 1, username: username });
+            return res.json({ 
+                sessionId, 
+                user: { id: 1, username: username },
+                expiresAt: SESSION_EXPIRY
+            });
+        }
+
         // Buscar usuário no banco de dados
         const userResult = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
         
@@ -399,6 +421,19 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
     } catch (err) {
         console.error('Login error:', err);
         console.error('Stack trace:', err.stack);
+        
+        // Fallback to hardcoded credentials if database is down
+        const { username, password } = req.body;
+        if (username === 'admin' && password === 'Anovasenhae8763') {
+            console.log('Database connection failed, using fallback credentials');
+            const sessionId = createToken({ id: 1, username: 'admin' });
+            return res.json({ 
+                sessionId, 
+                user: { id: 1, username: 'admin' },
+                expiresAt: SESSION_EXPIRY
+            });
+        }
+        
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
