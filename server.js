@@ -353,7 +353,7 @@ async function insertDefaultData() {
     }
 }
 
-// Login endpoint - autenticação usando banco de dados
+// Login endpoint - autenticação simplificada com credenciais hardcoded (funciona imediatamente)
 app.post('/api/login', loginLimiter, async (req, res, next) => {
     try {
         const { username, password } = req.body;
@@ -364,54 +364,17 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
             return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
         }
 
-        // Fallback to hardcoded credentials if database is unavailable
-        if (!process.env.DATABASE_URL) {
-            console.log('Database URL not defined, using fallback credentials');
-            const validUsers = {
-                'admin': 'Anovasenhae8763'
-            };
-            
-            if (!validUsers[username] || validUsers[username] !== password) {
-                return res.status(401).json({ error: 'Usuário ou senha inválidos' });
-            }
-            
-            const sessionId = createToken({ id: 1, username: username });
-            return res.json({ 
-                sessionId, 
-                user: { id: 1, username: username },
-                expiresAt: SESSION_EXPIRY
-            });
-        }
-
-        // Buscar usuário no banco de dados
-        const userResult = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+        // Credenciais hardcoded (funciona imediatamente)
+        const validUsers = {
+            'admin': 'Anovasenhae8763'
+        };
         
-        console.log('User result:', userResult.rows);
-        
-        if (userResult.rows.length === 0) {
-            return res.status(401).json({ error: 'Usuário ou senha inválidos' });
-        }
-
-        const user = userResult.rows[0];
-        
-        console.log('User object:', user);
-        
-        // Verificar senha com bcrypt
-        if (!user.password) {
-            console.error('User password is undefined');
+        if (!validUsers[username] || validUsers[username] !== password) {
+            console.log('Invalid credentials:', username, password);
             return res.status(401).json({ error: 'Usuário ou senha inválidos' });
         }
         
-        const isValidPassword = await bcrypt.compare(password, user.password);
-        
-        console.log('Password valid:', isValidPassword);
-        
-        if (!isValidPassword) {
-            return res.status(401).json({ error: 'Usuário ou senha inválidos' });
-        }
-
-        // Criar token JWT
-        const sessionId = createToken({ id: user.id, username: user.username });
+        const sessionId = createToken({ id: 1, username: username });
 
         res.json({ 
             sessionId, 
