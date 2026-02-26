@@ -366,7 +366,8 @@ li.dragging {
     color: #333;
 }
 
-.modal-body .form-group input {
+.modal-body .form-group input,
+.modal-body .form-group textarea {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;
@@ -376,6 +377,18 @@ li.dragging {
 }
 
 .modal-body .form-group input:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.modal-body .form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+    font-family: inherit;
+}
+
+.modal-body .form-group textarea:focus {
     border-color: #007bff;
     outline: none;
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);

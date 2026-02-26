@@ -398,11 +398,11 @@ function openConfirmModal(providerId) {
 // --- Funções de Modal para Procedimentos ---
 function showModal(title, initialValue, callback) {
     modalTitle.textContent = title;
-    modalInput.innerHTML = initialValue || '';
+    modalInput.value = initialValue || '';
     modal.style.display = 'block';
     modalInput.focus();
     modalSave.onclick = () => {
-        const value = modalInput.innerHTML.trim();
+        const value = modalInput.value.trim();
         if (value) {
             callback(value);
             modal.style.display = 'none';
@@ -884,24 +884,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- Editor commands ---
-boldBtn.addEventListener('click', () => document.execCommand('bold'));
-italicBtn.addEventListener('click', () => document.execCommand('italic'));
-underlineBtn.addEventListener('click', () => document.execCommand('underline'));
-imageBtn.addEventListener('click', () => {
-    imageInput.click();
-});
 
-imageInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const base64String = event.target.result;
-            document.execCommand('insertImage', false, base64String);
-        };
-        reader.readAsDataURL(file);
-    }
-});
-fontSizeSelect.addEventListener('change', () => document.execCommand('fontSize', false, fontSizeSelect.value));
-colorPicker.addEventListener('change', () => document.execCommand('foreColor', false, colorPicker.value));});

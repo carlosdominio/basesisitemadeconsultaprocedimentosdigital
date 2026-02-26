@@ -116,23 +116,11 @@
                 <span class="close">&times;</span>
                 <h2 id="modalTitle">Adicionar Procedimento</h2>
             </div>
-            <div class="modal-toolbar">
-                <button id="boldBtn">Negrito</button>
-                <button id="italicBtn">Itálico</button>
-                <button id="underlineBtn">Sublinhado</button>
-                <input type="file" id="imageInput" accept="image/*" style="display: none;">
-                <button id="imageBtn">Imagem</button>
-                <select id="fontSizeSelect">
-                    <option value="1">Tamanho 1</option>
-                    <option value="2">Tamanho 2</option>
-                    <option value="3" selected>Tamanho 3</option>
-                    <option value="4">Tamanho 4</option>
-                    <option value="5">Tamanho 5</option>
-                </select>
-                <input type="color" id="colorPicker" value="#000000">
-            </div>
             <div class="modal-body">
-                <div id="modalInput" contenteditable="true" placeholder="Digite o texto do procedimento"></div>
+                <div class="form-group">
+                    <label for="modalInput">Texto do Procedimento</label>
+                    <textarea id="modalInput" placeholder="Digite o texto do procedimento" rows="4"></textarea>
+                </div>
             </div>
             <div class="modal-footer">
                 <button id="modalCancel">Cancelar</button>
