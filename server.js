@@ -208,9 +208,9 @@ async function insertDefaultData() {
         await pool.query("INSERT INTO sinistro_procedures (sinistro_type, procedure_text) VALUES ($1, $2)", [proc.sinistro_type, proc.procedure_text]);
     }
 
-    const defaultPassword = 'Anovasenhae8763';
+    const defaultPassword = 'Anovasenhae8763#a*#543Iuay';
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-    await pool.query("INSERT INTO users (username, password_hash) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING", ['admin', hashedPassword]);
+    await pool.query("INSERT INTO users (username, password_hash) VALUES ($1, $2) ON CONFLICT (username) DO UPDATE SET password_hash = $2", ['admin', hashedPassword]);
 }
 
 // Routes
@@ -229,7 +229,7 @@ app.post('/api/auth/login', async (req, res) => {
         console.log('User query result:', result.rows);
         
         if (result.rows.length === 0) {
-            if (username === 'admin' && (password === 'Anovasenhae8763' || password === 'admin123')) {
+            if (username === 'admin' && password === 'Anovasenhae8763#a*#543Iuay') {
                 console.log('Creating new admin user');
                 const hashedPassword = await bcrypt.hash(password, 10);
                 const newUser = await pool.query(
@@ -294,7 +294,7 @@ app.post('/api/auth/logout', (req, res) => {
 app.post('/api/auth/reset-admin', async (req, res) => {
     try {
         const { password } = req.body;
-        const newPassword = password || 'Anovasenhae8763';
+        const newPassword = password || 'Anovasenhae8763#a*#543Iuay';
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         
         console.log('Resetting admin password');
