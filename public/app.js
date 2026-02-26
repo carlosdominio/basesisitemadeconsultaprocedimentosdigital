@@ -489,7 +489,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const procId = selectedLi.dataset.id;
-        const currentText = selectedLi.textContent.substring(3);
+        const contentDiv = selectedLi.querySelector('.procedure-content');
+        const currentText = contentDiv.textContent.trim();
         showModal('Editar Procedimento', currentText, async (newText) => {
             if (newText && newText !== currentText) {
                 const result = await fetchData(`${API_URL}/clients/${clientId}/procedures/${procId}`, {
@@ -626,7 +627,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const procId = selectedLi.dataset.id;
-        const currentText = selectedLi.textContent.substring(3);
+        const contentDiv = selectedLi.querySelector('.procedure-content');
+        const currentText = contentDiv.textContent.trim();
         confirmModalTitle.textContent = 'Remover Procedimento';
         confirmModalMessage.textContent = `Tem certeza que deseja remover o procedimento "${currentText}"?`;
         confirmModalConfirm.onclick = async () => {
@@ -755,7 +757,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const procId = selectedLi.dataset.id;
-        const currentText = selectedLi.textContent.substring(3);
+        const contentDiv = selectedLi.querySelector('.procedure-content');
+        const currentText = contentDiv.textContent.trim();
         showModal('Editar Procedimento', currentText, async (newText) => {
             if (newText && newText !== currentText) {
                 const result = await fetchData(`${API_URL}/providers/${providerId}/procedures/${procId}`, {
@@ -779,7 +782,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const procId = selectedLi.dataset.id;
-        const currentText = selectedLi.textContent.substring(3);
+        const contentDiv = selectedLi.querySelector('.procedure-content');
+        const currentText = contentDiv.textContent.trim();
         confirmModalTitle.textContent = 'Remover Procedimento';
         confirmModalMessage.textContent = `Tem certeza que deseja remover o procedimento "${currentText}"?`;
         confirmModalConfirm.onclick = async () => {
@@ -822,7 +826,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const procId = selectedLi.dataset.id;
-        const currentText = selectedLi.textContent.substring(3);
+        const contentDiv = selectedLi.querySelector('.procedure-content');
+        const currentText = contentDiv.textContent.trim();
         showModal('Editar Procedimento Adicional', currentText, async (newText) => {
             if (newText && newText !== currentText) {
                 const result = await fetchData(`${API_URL}/providers/${providerId}/additional-procedures/${procId}`, {
@@ -845,7 +850,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const procId = selectedLi.dataset.id;
-        const currentText = selectedLi.textContent.substring(3);
+        const contentDiv = selectedLi.querySelector('.procedure-content');
+        const currentText = contentDiv.textContent.trim();
         confirmModalTitle.textContent = 'Remover Procedimento Adicional';
         confirmModalMessage.textContent = `Tem certeza que deseja remover o procedimento adicional "${currentText}"?`;
         confirmModalConfirm.onclick = async () => {
