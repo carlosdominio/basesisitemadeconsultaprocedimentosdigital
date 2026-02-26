@@ -6,6 +6,7 @@ const path = require('path');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
 const rateLimit = require('express-rate-limit');
+const pgSession = require('connect-pg-simple')(session);
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -32,6 +33,10 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
+    store: new pgSession({
+        pool: pool,
+        tableName: 'user_sessions'
+    }),
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
@@ -68,6 +73,15 @@ const pool = new Pool({
 // Initialize database
 (async () => {
     try {
+        // Create session table if not exists
+        await pool.query(`CREATE TABLE IF NOT EXISTS user_sessions (
+            sid VARCHAR NOT NULL COLLATE "default" PRIMARY KEY,
+            sess JSON NOT NULL,
+            expire TIMESTAMP(6) NOT NULL
+        ) WITH (OIDS=FALSE)`);
+        
+        await pool.query(`CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "user_sessions" ("expire")`);
+        
         await pool.query(`CREATE TABLE IF NOT EXISTS clients (
             id SERIAL PRIMARY KEY,
             name TEXT
