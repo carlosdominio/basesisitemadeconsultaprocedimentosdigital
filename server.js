@@ -200,6 +200,10 @@ const pool = new Pool({
 // Initialize database
 (async () => {
     try {
+        // Verificar se a conexão com o banco de dados está disponível
+        await pool.query('SELECT 1');
+        console.log('Conexão com o banco de dados estabelecida com sucesso');
+        
         await pool.query(`CREATE TABLE IF NOT EXISTS clients (
             id SERIAL PRIMARY KEY,
             name TEXT
@@ -261,20 +265,21 @@ const pool = new Pool({
              console.log('Admin user created successfully');
          }
 
-         // Insert default data if not exists
-         const result = await pool.query("SELECT COUNT(*) as count FROM clients");
-         if (parseInt(result.rows[0].count) === 0) {
-             await insertDefaultData();
-             // Update sequences to avoid duplicate key errors
-             await pool.query("SELECT setval('clients_id_seq', (SELECT MAX(id) FROM clients))");
-             await pool.query("SELECT setval('client_procedures_id_seq', (SELECT MAX(id) FROM client_procedures))");
-             await pool.query("SELECT setval('providers_id_seq', (SELECT MAX(id) FROM providers))");
-             await pool.query("SELECT setval('provider_procedures_id_seq', (SELECT MAX(id) FROM provider_procedures))");
-             await pool.query("SELECT setval('additional_provider_procedures_id_seq', (SELECT MAX(id) FROM additional_provider_procedures))");
-             await pool.query("SELECT setval('sinistro_procedures_id_seq', (SELECT MAX(id) FROM sinistro_procedures))");
-         }
+        // Insert default data if not exists
+        const result = await pool.query("SELECT COUNT(*) as count FROM clients");
+        if (parseInt(result.rows[0].count) === 0) {
+            await insertDefaultData();
+            // Update sequences to avoid duplicate key errors
+            await pool.query("SELECT setval('clients_id_seq', (SELECT MAX(id) FROM clients))");
+            await pool.query("SELECT setval('client_procedures_id_seq', (SELECT MAX(id) FROM client_procedures))");
+            await pool.query("SELECT setval('providers_id_seq', (SELECT MAX(id) FROM providers))");
+            await pool.query("SELECT setval('provider_procedures_id_seq', (SELECT MAX(id) FROM provider_procedures))");
+            await pool.query("SELECT setval('additional_provider_procedures_id_seq', (SELECT MAX(id) FROM additional_provider_procedures))");
+            await pool.query("SELECT setval('sinistro_procedures_id_seq', (SELECT MAX(id) FROM sinistro_procedures))");
+        }
     } catch (err) {
-        console.error('Error initializing database:', err.message);
+        console.error('Error initializing database:', err);
+        console.error('Stack trace:', err.stack);
     }
 })();
 
