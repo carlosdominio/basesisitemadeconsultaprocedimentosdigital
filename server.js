@@ -243,25 +243,36 @@ const pool = new Pool({
             procedure_text TEXT
         )`);
 
-        await pool.query(`CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
+         await pool.query(`CREATE TABLE IF NOT EXISTS users (
+             id SERIAL PRIMARY KEY,
+             username TEXT UNIQUE NOT NULL,
+             password TEXT NOT NULL,
+             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+         )`);
 
-        // Insert default data if not exists
-        const result = await pool.query("SELECT COUNT(*) as count FROM clients");
-        if (parseInt(result.rows[0].count) === 0) {
-            await insertDefaultData();
-            // Update sequences to avoid duplicate key errors
-            await pool.query("SELECT setval('clients_id_seq', (SELECT MAX(id) FROM clients))");
-            await pool.query("SELECT setval('client_procedures_id_seq', (SELECT MAX(id) FROM client_procedures))");
-            await pool.query("SELECT setval('providers_id_seq', (SELECT MAX(id) FROM providers))");
-            await pool.query("SELECT setval('provider_procedures_id_seq', (SELECT MAX(id) FROM provider_procedures))");
-            await pool.query("SELECT setval('additional_provider_procedures_id_seq', (SELECT MAX(id) FROM additional_provider_procedures))");
-            await pool.query("SELECT setval('sinistro_procedures_id_seq', (SELECT MAX(id) FROM sinistro_procedures))");
-        }
+         // Create admin user if not exists (only one admin)
+         const adminUsername = 'admin';
+         const adminPassword = 'Anovasenhae8763';
+         const hashedPassword = await bcrypt.hash(adminPassword, 10);
+         
+         const existingAdmin = await pool.query("SELECT id FROM users WHERE username = $1", [adminUsername]);
+         if (existingAdmin.rows.length === 0) {
+             await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)", [adminUsername, hashedPassword]);
+             console.log('Admin user created successfully');
+         }
+
+         // Insert default data if not exists
+         const result = await pool.query("SELECT COUNT(*) as count FROM clients");
+         if (parseInt(result.rows[0].count) === 0) {
+             await insertDefaultData();
+             // Update sequences to avoid duplicate key errors
+             await pool.query("SELECT setval('clients_id_seq', (SELECT MAX(id) FROM clients))");
+             await pool.query("SELECT setval('client_procedures_id_seq', (SELECT MAX(id) FROM client_procedures))");
+             await pool.query("SELECT setval('providers_id_seq', (SELECT MAX(id) FROM providers))");
+             await pool.query("SELECT setval('provider_procedures_id_seq', (SELECT MAX(id) FROM provider_procedures))");
+             await pool.query("SELECT setval('additional_provider_procedures_id_seq', (SELECT MAX(id) FROM additional_provider_procedures))");
+             await pool.query("SELECT setval('sinistro_procedures_id_seq', (SELECT MAX(id) FROM sinistro_procedures))");
+         }
     } catch (err) {
         console.error('Error initializing database:', err.message);
     }
@@ -327,7 +338,7 @@ async function insertDefaultData() {
     }
 }
 
-// Login endpoint - autenticação simples sem banco
+// Login endpoint - autenticação usando banco de dados
 app.post('/api/login', loginLimiter, async (req, res, next) => {
     try {
         const { username, password } = req.body;
@@ -336,21 +347,28 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
             return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
         }
 
-        // Credenciais hardcoded para teste (em produção, usar banco)
-        const validUsers = {
-            'admin': 'Anovasenhae8763'
-        };
+        // Buscar usuário no banco de dados
+        const userResult = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+        
+        if (userResult.rows.length === 0) {
+            return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+        }
 
-        if (!validUsers[username] || validUsers[username] !== password) {
+        const user = userResult.rows[0];
+        
+        // Verificar senha com bcrypt
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        
+        if (!isValidPassword) {
             return res.status(401).json({ error: 'Usuário ou senha inválidos' });
         }
 
         // Criar token JWT
-        const sessionId = createToken({ id: 1, username: username });
+        const sessionId = createToken({ id: user.id, username: user.username });
 
         res.json({ 
             sessionId, 
-            user: { id: 1, username: username },
+            user: { id: user.id, username: user.username },
             expiresAt: SESSION_EXPIRY
         });
     } catch (err) {
