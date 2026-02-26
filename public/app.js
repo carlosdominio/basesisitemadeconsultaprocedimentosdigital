@@ -1,23 +1,36 @@
 async function checkAuth() {
     try {
-        const response = await fetch('/api/auth/check');
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('username');
+            window.location.href = 'login.html';
+            return false;
+        }
+
+        const response = await fetch('/api/auth/check', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
         const data = await response.json();
         if (!data.authenticated) {
-            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('authToken');
             localStorage.removeItem('username');
             window.location.href = 'login.html';
             return false;
         }
         return true;
     } catch (error) {
-        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('authToken');
         localStorage.removeItem('username');
         window.location.href = 'login.html';
         return false;
     }
 }
 
-if (!localStorage.getItem('isLoggedIn')) {
+if (!localStorage.getItem('authToken')) {
     window.location.href = 'login.html';
 }
 
@@ -34,10 +47,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async function() {
-            try {
-                await fetch('/api/auth/logout', { method: 'POST' });
-            } catch (e) {}
-            localStorage.removeItem('isLoggedIn');
+            // For token-based authentication, we just need to remove the token from localStorage
+            localStorage.removeItem('authToken');
             localStorage.removeItem('username');
             window.location.href = 'login.html';
         });
@@ -97,9 +108,17 @@ const imageClose = document.getElementsByClassName('image-close')[0];
 
 async function fetchData(url, options = {}) {
     try {
-        const response = await fetch(url, options);
+        const token = localStorage.getItem('authToken');
+        const headers = options.headers || {};
+        headers['Authorization'] = `Bearer ${token}`;
+        
+        const response = await fetch(url, {
+            ...options,
+            headers: headers
+        });
+        
         if (response.status === 401) {
-            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('authToken');
             localStorage.removeItem('username');
             window.location.href = 'login.html';
             return null;

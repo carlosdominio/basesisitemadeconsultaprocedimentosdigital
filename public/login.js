@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('loginForm');
     const loginMessage = document.getElementById('loginMessage');
 
-    if (localStorage.getItem('isLoggedIn')) {
+    if (localStorage.getItem('authToken')) {
         window.location.href = 'index.html';
         return;
     }
@@ -35,8 +35,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (response.ok) {
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('username', username);
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('username', data.username);
                 localStorage.setItem('loginTime', new Date().toISOString());
                 
                 showMessage('Login realizado com sucesso! Redirecionando...', 'success');

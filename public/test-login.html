@@ -150,6 +150,8 @@
                 const data = await response.json();
                 
                 if (response.ok) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('username', data.username);
                     showResult(`✅ Sucesso! ${data.message}`, 'success');
                 } else {
                     showResult(`❌ Erro: ${data.error} (Código: ${response.status})`, 'error');
@@ -190,7 +192,18 @@
             showResult('Verificando autenticação...');
             
             try {
-                const response = await fetch(`${API_URL}/check`);
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    showResult('❌ Não autenticado (sem token)', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`${API_URL}/check`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
                 const data = await response.json();
                 
                 if (data.authenticated) {
