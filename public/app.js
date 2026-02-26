@@ -709,11 +709,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         openProviderModal('edit', providerId);
-            });
-            if (result) {
-                populateProviders();
-            }
-        }
     });
 
 
