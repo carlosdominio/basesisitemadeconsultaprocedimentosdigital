@@ -6,7 +6,6 @@ const path = require('path');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
 const rateLimit = require('express-rate-limit');
-const pgSession = require('connect-pg-simple')(session);
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -33,10 +32,6 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
-    store: new pgSession({
-        pool: pool,
-        tableName: 'user_sessions'
-    }),
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
