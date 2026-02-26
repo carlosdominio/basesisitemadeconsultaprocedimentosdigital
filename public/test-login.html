@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .separator {
+            margin: 20px 0;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Teste de Login</h1>
+        
+        <div class="form-group">
+            <h2>1. Fazer Login</h2>
+            <div class="form-group">
+                <label>Usuário:</label>
+                <input type="text" id="username" placeholder="admin">
+            </div>
+            <div class="form-group">
+                <label>Senha:</label>
+                <input type="password" id="password" placeholder="Anovasenhae8763">
+            </div>
+            <button onclick="login()">Fazer Login</button>
+        </div>
+        
+        <div class="separator"></div>
+        
+        <div class="form-group">
+            <h2>2. Redefinir Senha do Admin</h2>
+            <div class="form-group">
+                <label>Nova Senha (opcional):</label>
+                <input type="password" id="newPassword" placeholder="Anovasenhae8763">
+            </div>
+            <button onclick="resetAdmin()">Redefinir Senha</button>
+        </div>
+        
+        <div class="separator"></div>
+        
+        <div class="form-group">
+            <h2>3. Verificar Autenticação</h2>
+            <button onclick="checkAuth()">Verificar Login</button>
+        </div>
+        
+        <div class="separator"></div>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const API_URL = '/api/auth';
+        
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+        }
+        
+        async function login() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                showResult('Por favor, preencha usuário e senha.', 'error');
+                return;
+            }
+            
+            showResult('Processando login...');
+            
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(`✅ Sucesso! ${data.message}`, 'success');
+                } else {
+                    showResult(`❌ Erro: ${data.error} (Código: ${response.status})`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Erro de conexão: ${error.message}`, 'error');
+            }
+        }
+        
+        async function resetAdmin() {
+            const newPassword = document.getElementById('newPassword').value || 'Anovasenhae8763';
+            
+            showResult('Redefinindo senha do admin...');
+            
+            try {
+                const response = await fetch(`${API_URL}/reset-admin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: newPassword })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(`✅ Senha redefinida com sucesso! Nova senha: ${data.password}`, 'success');
+                    document.getElementById('password').value = data.password;
+                } else {
+                    showResult(`❌ Erro: ${data.error} (Código: ${response.status})`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Erro de conexão: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkAuth() {
+            showResult('Verificando autenticação...');
+            
+            try {
+                const response = await fetch(`${API_URL}/check`);
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    showResult(`✅ Autenticado como ${data.username}`, 'success');
+                } else {
+                    showResult('❌ Não autenticado', 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Erro de conexão: ${error.message}`, 'error');
+            }
+        }
+        
+        // Testar conexão ao carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            showResult('Página carregada. Use os botões para testar as funcionalidades.', 'info');
+        });
+    </script>
+</body>
+</html>
