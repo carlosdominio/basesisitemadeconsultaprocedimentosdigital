@@ -202,16 +202,21 @@ async function insertDefaultData() {
 // Routes
 app.post('/api/auth/login', async (req, res) => {
     try {
+        console.log('Login attempt with:', req.body);
+        
         const { username, password } = req.body;
         
         if (!username || !password) {
+            console.log('Missing username or password');
             return res.status(400).json({ error: 'Username e senha são obrigatórios' });
         }
 
         const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+        console.log('User query result:', result.rows);
         
         if (result.rows.length === 0) {
             if (username === 'admin' && password === 'Anovasenhae8763') {
+                console.log('Creating new admin user');
                 const hashedPassword = await bcrypt.hash(password, 10);
                 const newUser = await pool.query(
                     "INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING *",
@@ -221,11 +226,15 @@ app.post('/api/auth/login', async (req, res) => {
                 req.session.username = newUser.rows[0].username;
                 return res.json({ message: 'Login realizado com sucesso', username: newUser.rows[0].username });
             }
+            console.log('User not found and not admin');
             return res.status(401).json({ error: 'Usuário ou senha incorretos' });
         }
 
         const user = result.rows[0];
+        console.log('Found user:', user.username);
+        
         const validPassword = await bcrypt.compare(password, user.password_hash);
+        console.log('Password validation:', validPassword);
         
         if (!validPassword) {
             return res.status(401).json({ error: 'Usuário ou senha incorretos' });
@@ -236,6 +245,7 @@ app.post('/api/auth/login', async (req, res) => {
         
         res.json({ message: 'Login realizado com sucesso', username: user.username });
     } catch (err) {
+        console.error('Login error:', err);
         res.status(500).json({ error: err.message });
     }
 });
