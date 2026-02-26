@@ -259,10 +259,17 @@ const pool = new Pool({
          const adminPassword = 'Anovasenhae8763';
          const hashedPassword = await bcrypt.hash(adminPassword, 10);
          
-         const existingAdmin = await pool.query("SELECT id FROM users WHERE username = $1", [adminUsername]);
+         const existingAdmin = await pool.query("SELECT * FROM users WHERE username = $1", [adminUsername]);
          if (existingAdmin.rows.length === 0) {
              await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)", [adminUsername, hashedPassword]);
              console.log('Admin user created successfully');
+         } else {
+             // Update password if it's not hashed or is incorrect
+             const existingUser = existingAdmin.rows[0];
+             if (!existingUser.password || existingUser.password.length < 60) { // bcrypt hashes are ~60 chars
+                 await pool.query("UPDATE users SET password = $1 WHERE username = $2", [hashedPassword, adminUsername]);
+                 console.log('Admin user password updated');
+             }
          }
 
         // Insert default data if not exists
@@ -348,6 +355,8 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
     try {
         const { username, password } = req.body;
         
+        console.log('Login attempt:', username);
+        
         if (!username || !password) {
             return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
         }
@@ -355,14 +364,25 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
         // Buscar usuário no banco de dados
         const userResult = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
         
+        console.log('User result:', userResult.rows);
+        
         if (userResult.rows.length === 0) {
             return res.status(401).json({ error: 'Usuário ou senha inválidos' });
         }
 
         const user = userResult.rows[0];
         
+        console.log('User object:', user);
+        
         // Verificar senha com bcrypt
+        if (!user.password) {
+            console.error('User password is undefined');
+            return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+        }
+        
         const isValidPassword = await bcrypt.compare(password, user.password);
+        
+        console.log('Password valid:', isValidPassword);
         
         if (!isValidPassword) {
             return res.status(401).json({ error: 'Usuário ou senha inválidos' });
@@ -377,7 +397,9 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
             expiresAt: SESSION_EXPIRY
         });
     } catch (err) {
-        next(err);
+        console.error('Login error:', err);
+        console.error('Stack trace:', err.stack);
+        res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
 
