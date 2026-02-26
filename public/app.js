@@ -230,7 +230,6 @@ async function showProcedures(clientId) {
                     document.querySelectorAll('#proceduresList li').forEach(el => el.classList.remove('selected'));
                     li.classList.add('selected');
                 });
-
                 proceduresList.appendChild(li);
             });
         }
@@ -525,8 +524,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-    });
-    
+});
+});
     // Image modal functionality
     let scale = 1;
     let panning = false;
@@ -629,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const result = await fetchData(`${API_URL}/clients/${clientId}/procedures/${procId}`, {
                         method: 'PUT',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({procedure_text: newText})
+                    body: JSON.stringify({procedure_text: newText})
                     });
                     if (result) {
                         showProcedures(clientId);
