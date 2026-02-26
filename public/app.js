@@ -192,6 +192,42 @@ async function showProcedures(clientId) {
     }
 }
 
+async function showProviderProcedures(providerId, sinistroType) {
+    if (!providerId || !sinistroType) {
+        providerProceduresContainer.style.display = 'none';
+        return;
+    }
+
+    const capitalizedSinistro = sinistroType.charAt(0).toUpperCase() + sinistroType.slice(1);
+    providerProceduresTitle.innerHTML = `Procedimentos Demais CLIENTES <span class="sinistro-red">${capitalizedSinistro}</span>`;
+
+    const procedures = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistroType}`);
+    providerProceduresList.innerHTML = '';
+    if (procedures && procedures.length > 0) {
+        procedures.forEach((proc, index) => {
+            const li = document.createElement('li');
+            li.className = 'procedure-item';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'procedure-content';
+            contentDiv.textContent = proc.procedure_text;
+
+            li.appendChild(contentDiv);
+            li.dataset.id = proc.id;
+
+            li.addEventListener('click', () => {
+                document.querySelectorAll('#providerProceduresList li').forEach(el => el.classList.remove('selected'));
+                li.classList.add('selected');
+            });
+
+            providerProceduresList.appendChild(li);
+        });
+        providerProceduresContainer.style.display = 'block';
+    } else {
+        providerProceduresContainer.style.display = 'none';
+    }
+}
+
 async function showAdditionalProviderProcedures(providerId, sinistroType) {
     if (!providerId || !sinistroType) {
         additionalProviderProceduresContainer.style.display = 'none';
