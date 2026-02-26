@@ -257,6 +257,15 @@ app.post('/api/auth/login', async (req, res) => {
         const user = result.rows[0];
         console.log('Found user:', user.username);
         
+        // Se o usuário é admin e a senha é admin123, rejeitar login e atualizar senha
+        if (username === 'admin' && password === 'admin123') {
+            console.log('Rejecting admin123 password and updating to new password');
+            const newPassword = 'Anovasenhae8763#a*#543Iuay';
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [hashedPassword, user.id]);
+            return res.status(401).json({ error: 'Senha antiga, por favor use a nova senha' });
+        }
+        
         const validPassword = await bcrypt.compare(password, user.password_hash);
         console.log('Password validation:', validPassword);
         
@@ -309,6 +318,28 @@ app.post('/api/auth/reset-admin', async (req, res) => {
         res.json({ message: 'Senha do admin redefinida com sucesso', username: 'admin', password: newPassword });
     } catch (err) {
         console.error('Reset admin password error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Endpoint para atualizar senha do admin (sem autenticação, para emergências)
+app.post('/api/auth/force-reset-admin', async (req, res) => {
+    try {
+        const newPassword = 'Anovasenhae8763#a*#543Iuay';
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        
+        console.log('Force resetting admin password');
+        const result = await pool.query(`
+            INSERT INTO users (username, password_hash) 
+            VALUES ('admin', $1) 
+            ON CONFLICT (username) DO UPDATE SET password_hash = $1
+            RETURNING *
+        `, [hashedPassword]);
+        
+        console.log('Admin user after force reset:', result.rows[0]);
+        res.json({ message: 'Senha do admin redefinida com sucesso', username: 'admin', password: newPassword });
+    } catch (err) {
+        console.error('Force reset admin password error:', err);
         res.status(500).json({ error: err.message });
     }
 });
