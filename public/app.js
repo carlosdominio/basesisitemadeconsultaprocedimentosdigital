@@ -61,6 +61,7 @@ const clientSelect = document.getElementById('clientSelect');
 const proceduresContainer = document.getElementById('proceduresContainer');
 const proceduresList = document.getElementById('proceduresList');
 const addProcedureBtn = document.getElementById('addProcedureBtn');
+const editProcedureBtn = document.getElementById('editProcedureBtn');
 const deleteProcedureBtn = document.getElementById('deleteProcedureBtn');
 const addClientBtn = document.getElementById('addClientBtn');
 const editClientBtn = document.getElementById('editClientBtn');
@@ -502,6 +503,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    editProcedureBtn.addEventListener('click', async () => {
+        const clientId = clientSelect.value;
+        const selectedLi = document.querySelector('#proceduresList li.selected');
+        if (!selectedLi) {
+            alert('Selecione um procedimento para editar.');
+            return;
+        }
+        const procId = selectedLi.dataset.id;
+        const currentText = selectedLi.textContent.substring(3);
+        showModal('Editar Procedimento', currentText, async (newText) => {
+            if (newText && newText !== currentText) {
+                const result = await fetchData(`${API_URL}/clients/${clientId}/procedures/${procId}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({procedure_text: newText})
+                });
+                if (result) {
+                    showProcedures(clientId);
+                }
+            }
+        });
+    });
     
     // Image modal functionality
     let scale = 1;
@@ -624,15 +648,20 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Selecione um procedimento para remover.');
             return;
         }
-        if (confirm('Tem certeza que deseja remover este procedimento?')) {
-            const procId = selectedLi.dataset.id;
+        const procId = selectedLi.dataset.id;
+        const currentText = selectedLi.textContent.substring(3);
+        confirmModalTitle.textContent = 'Remover Procedimento';
+        confirmModalMessage.textContent = `Tem certeza que deseja remover o procedimento "${currentText}"?`;
+        confirmModalConfirm.onclick = async () => {
             const result = await fetchData(`${API_URL}/clients/${clientId}/procedures/${procId}`, {
                 method: 'DELETE'
             });
             if (result) {
                 showProcedures(clientId);
+                confirmModal.style.display = 'none';
             }
-        }
+        };
+        confirmModal.style.display = 'block';
     });
 
     addClientBtn.addEventListener('click', async () => {
@@ -728,8 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Selecione um prestador e um tipo de sinistro.');
             return;
         }
-        const procedureText = prompt('Texto do procedimento:');
-        if (procedureText) {
+        showModal('Adicionar Procedimento', '', async (procedureText) => {
             const result = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistro}`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -738,7 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result) {
                 showProviderProcedures(providerId, sinistro);
             }
-        }
+        });
     });
 
     editProviderProcedureBtn.addEventListener('click', async () => {
@@ -751,17 +779,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const procId = selectedLi.dataset.id;
         const currentText = selectedLi.textContent.substring(3);
-        const newText = prompt('Novo texto do procedimento:', currentText);
-        if (newText && newText !== currentText) {
-            const result = await fetchData(`${API_URL}/providers/${providerId}/procedures/${procId}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({procedure_text: newText})
-            });
-            if (result) {
-                showProviderProcedures(providerId, sinistro);
+        showModal('Editar Procedimento', currentText, async (newText) => {
+            if (newText && newText !== currentText) {
+                const result = await fetchData(`${API_URL}/providers/${providerId}/procedures/${procId}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({procedure_text: newText})
+                });
+                if (result) {
+                    showProviderProcedures(providerId, sinistro);
+                }
             }
-        }
+        });
     });
 
     deleteProviderProcedureBtn.addEventListener('click', async () => {
@@ -772,15 +801,20 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Selecione um procedimento para remover.');
             return;
         }
-        if (confirm('Tem certeza que deseja remover este procedimento?')) {
-            const procId = selectedLi.dataset.id;
+        const procId = selectedLi.dataset.id;
+        const currentText = selectedLi.textContent.substring(3);
+        confirmModalTitle.textContent = 'Remover Procedimento';
+        confirmModalMessage.textContent = `Tem certeza que deseja remover o procedimento "${currentText}"?`;
+        confirmModalConfirm.onclick = async () => {
             const result = await fetchData(`${API_URL}/providers/${providerId}/procedures/${procId}`, {
                 method: 'DELETE'
             });
             if (result) {
                 showProviderProcedures(providerId, sinistro);
+                confirmModal.style.display = 'none';
             }
-        }
+        };
+        confirmModal.style.display = 'block';
     });
 
     addAdditionalProviderProcedureBtn.addEventListener('click', async () => {
@@ -790,8 +824,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Selecione um prestador e um tipo de sinistro.');
             return;
         }
-        const procedureText = prompt('Texto do procedimento adicional:');
-        if (procedureText) {
+        showModal('Adicionar Procedimento Adicional', '', async (procedureText) => {
             const result = await fetchData(`${API_URL}/providers/${providerId}/additional-procedures/${sinistro}`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -800,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result) {
                 showAdditionalProviderProcedures(providerId, sinistro);
             }
-        }
+        });
     });
 
     editAdditionalProviderProcedureBtn.addEventListener('click', async () => {
@@ -813,11 +846,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const procId = selectedLi.dataset.id;
         const currentText = selectedLi.textContent.substring(3);
-        const newText = prompt('Novo texto do procedimento adicional:', currentText);
-        if (newText && newText !== currentText) {
-            const result = await fetchData(`${API_URL}/providers/${providerId}/additional-procedures/${procId}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
+        showModal('Editar Procedimento Adicional', currentText, async (newText) => {
+            if (newText && newText !== currentText) {
+                const result = await fetchData(`${API_URL}/providers/${providerId}/additional-procedures/${procId}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({procedure_text: newText})
             });
             if (result) {
@@ -834,14 +867,41 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Selecione um procedimento adicional para remover.');
             return;
         }
-        if (confirm('Tem certeza que deseja remover este procedimento adicional?')) {
-            const procId = selectedLi.dataset.id;
+        const procId = selectedLi.dataset.id;
+        const currentText = selectedLi.textContent.substring(3);
+        confirmModalTitle.textContent = 'Remover Procedimento Adicional';
+        confirmModalMessage.textContent = `Tem certeza que deseja remover o procedimento adicional "${currentText}"?`;
+        confirmModalConfirm.onclick = async () => {
             const result = await fetchData(`${API_URL}/providers/${providerId}/additional-procedures/${procId}`, {
                 method: 'DELETE'
             });
             if (result) {
                 showAdditionalProviderProcedures(providerId, sinistro);
+                confirmModal.style.display = 'none';
             }
-        }
+        };
+        confirmModal.style.display = 'block';
     });
 });
+
+// --- Editor commands ---
+boldBtn.addEventListener('click', () => document.execCommand('bold'));
+italicBtn.addEventListener('click', () => document.execCommand('italic'));
+underlineBtn.addEventListener('click', () => document.execCommand('underline'));
+imageBtn.addEventListener('click', () => {
+    imageInput.click();
+});
+
+imageInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const base64String = event.target.result;
+            document.execCommand('insertImage', false, base64String);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+fontSizeSelect.addEventListener('change', () => document.execCommand('fontSize', false, fontSizeSelect.value));
+colorPicker.addEventListener('change', () => document.execCommand('foreColor', false, colorPicker.value));});
