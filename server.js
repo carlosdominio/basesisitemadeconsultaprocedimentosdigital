@@ -279,14 +279,18 @@ app.post('/api/auth/reset-admin', async (req, res) => {
         const newPassword = password || 'Anovasenhae8763';
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         
-        await pool.query(`
+        console.log('Resetting admin password');
+        const result = await pool.query(`
             INSERT INTO users (username, password_hash) 
             VALUES ('admin', $1) 
             ON CONFLICT (username) DO UPDATE SET password_hash = $1
+            RETURNING *
         `, [hashedPassword]);
         
+        console.log('Admin user after reset:', result.rows[0]);
         res.json({ message: 'Senha do admin redefinida com sucesso', username: 'admin', password: newPassword });
     } catch (err) {
+        console.error('Reset admin password error:', err);
         res.status(500).json({ error: err.message });
     }
 });
