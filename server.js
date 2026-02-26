@@ -59,6 +59,10 @@ app.get('/login', (req, res) => {
     res.sendFile(__dirname + '/public/login.html');
 });
 
+app.get('/test-login', (req, res) => {
+    res.sendFile(__dirname + '/public/test-login.html');
+});
+
 // Database
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
