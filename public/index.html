@@ -108,7 +108,7 @@
         </main>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal para Procedimentos -->
     <div id="modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -136,6 +136,47 @@
             <div class="modal-footer">
                 <button id="modalCancel">Cancelar</button>
                 <button id="modalSave">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Prestadores -->
+    <div id="providerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="provider-close">&times;</span>
+                <h2 id="providerModalTitle">Adicionar Prestador</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="providerNameInput">Nome do Prestador</label>
+                    <input type="text" id="providerNameInput" placeholder="Digite o nome do prestador">
+                </div>
+                <div class="form-group">
+                    <label for="providerImageInput">Imagem (URL - opcional)</label>
+                    <input type="text" id="providerImageInput" placeholder="https://exemplo.com/imagem.jpg">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="providerModalCancel">Cancelar</button>
+                <button id="providerModalSave">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação para Exclusão -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="confirm-close">&times;</span>
+                <h2 id="confirmModalTitle">Confirmar Exclusão</h2>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage">Tem certeza que deseja excluir este prestador?</p>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmModalCancel">Cancelar</button>
+                <button id="confirmModalConfirm" class="btn-danger">Confirmar Exclusão</button>
             </div>
         </div>
     </div>

@@ -90,6 +90,23 @@ const modalInput = document.getElementById('modalInput');
 const modalSave = document.getElementById('modalSave');
 const modalCancel = document.getElementById('modalCancel');
 const close = document.getElementsByClassName('close')[0];
+
+// Provider modal elements
+const providerModal = document.getElementById('providerModal');
+const providerModalTitle = document.getElementById('providerModalTitle');
+const providerNameInput = document.getElementById('providerNameInput');
+const providerImageInput = document.getElementById('providerImageInput');
+const providerModalSave = document.getElementById('providerModalSave');
+const providerModalCancel = document.getElementById('providerModalCancel');
+const providerClose = document.getElementsByClassName('provider-close')[0];
+
+// Confirmation modal elements
+const confirmModal = document.getElementById('confirmModal');
+const confirmModalTitle = document.getElementById('confirmModalTitle');
+const confirmModalMessage = document.getElementById('confirmModalMessage');
+const confirmModalConfirm = document.getElementById('confirmModalConfirm');
+const confirmModalCancel = document.getElementById('confirmModalCancel');
+const confirmClose = document.getElementsByClassName('confirm-close')[0];
 const boldBtn = document.getElementById('boldBtn');
 const italicBtn = document.getElementById('italicBtn');
 const underlineBtn = document.getElementById('underlineBtn');
@@ -292,7 +309,92 @@ async function showAdditionalProviderProcedures(providerId, sinistroType) {
     }
 }
 
-// Modal functions
+// --- Funções de Modal para Prestadores ---
+
+function openProviderModal(mode, providerId = null) {
+    if (mode === 'add') {
+        providerModalTitle.textContent = 'Adicionar Prestador';
+        providerNameInput.value = '';
+        providerImageInput.value = '';
+        providerModalSave.onclick = addProvider;
+    } else if (mode === 'edit') {
+        providerModalTitle.textContent = 'Editar Prestador';
+        // Buscar dados do prestador para editar
+        const selectedOption = providerSelect.options[providerSelect.selectedIndex];
+        const currentName = selectedOption.textContent;
+        providerNameInput.value = currentName;
+        providerImageInput.value = ''; // Não implementamos edição de imagem ainda
+        providerModalSave.onclick = () => editProvider(providerId);
+    }
+    providerModal.style.display = 'block';
+    providerNameInput.focus();
+}
+
+async function addProvider() {
+    const name = providerNameInput.value.trim();
+    const image = providerImageInput.value.trim();
+    
+    if (!name) {
+        alert('O nome do prestador é obrigatório.');
+        providerNameInput.focus();
+        return;
+    }
+    
+    const result = await fetchData(`${API_URL}/providers`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, image})
+    });
+    
+    if (result) {
+        populateProviders();
+        providerModal.style.display = 'none';
+    }
+}
+
+async function editProvider(providerId) {
+    const newName = providerNameInput.value.trim();
+    const newImage = providerImageInput.value.trim();
+    
+    if (!newName) {
+        alert('O nome do prestador é obrigatório.');
+        providerNameInput.focus();
+        return;
+    }
+    
+    const result = await fetchData(`${API_URL}/providers/${providerId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: newName, image: newImage})
+    });
+    
+    if (result) {
+        populateProviders();
+        providerModal.style.display = 'none';
+    }
+}
+
+function openConfirmModal(providerId) {
+    const selectedOption = providerSelect.options[providerSelect.selectedIndex];
+    const providerName = selectedOption.textContent;
+    confirmModalMessage.textContent = `Tem certeza que deseja excluir o prestador "${providerName}"?`;
+    confirmModalConfirm.onclick = async () => {
+        const result = await fetchData(`${API_URL}/providers/${providerId}`, {
+            method: 'DELETE'
+        });
+        
+        if (result) {
+            populateProviders();
+            providerSelect.value = '';
+            showProviderProcedures('', '');
+            showAdditionalProviderProcedures('', '');
+            confirmModal.style.display = 'none';
+        }
+    };
+    confirmModal.style.display = 'block';
+}
+
+// --- Funções de Modal para Procedimentos ---
 function showModal(title, initialValue, callback) {
     modalTitle.textContent = title;
     modalInput.innerHTML = initialValue || '';
@@ -334,6 +436,32 @@ imageInput.addEventListener('change', (e) => {
 });
 fontSizeSelect.addEventListener('change', () => document.execCommand('fontSize', false, fontSizeSelect.value));
 colorPicker.addEventListener('change', () => document.execCommand('foreColor', false, colorPicker.value));
+
+// Provider modal close events
+providerModalCancel.onclick = () => {
+    providerModal.style.display = 'none';
+};
+providerClose.onclick = () => {
+    providerModal.style.display = 'none';
+};
+window.addEventListener('click', (event) => {
+    if (event.target === providerModal) {
+        providerModal.style.display = 'none';
+    }
+});
+
+// Confirm modal close events
+confirmModalCancel.onclick = () => {
+    confirmModal.style.display = 'none';
+};
+confirmClose.onclick = () => {
+    confirmModal.style.display = 'none';
+};
+window.addEventListener('click', (event) => {
+    if (event.target === confirmModal) {
+        confirmModal.style.display = 'none';
+    }
+});
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
@@ -570,19 +698,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    addProviderBtn.addEventListener('click', async () => {
-        const name = prompt('Nome do prestador:');
-        if (name) {
-            const image = prompt('Imagem (opcional):') || '';
-            const result = await fetchData(`${API_URL}/providers`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({name, image})
-            });
-            if (result) {
-                populateProviders();
-            }
-        }
+    addProviderBtn.addEventListener('click', () => {
+        openProviderModal('add');
     });
 
     editProviderBtn.addEventListener('click', async () => {
@@ -591,12 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Selecione um prestador para editar.');
             return;
         }
-        const newName = prompt('Novo nome do prestador:');
-        if (newName) {
-            const result = await fetchData(`${API_URL}/providers/${providerId}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({name: newName, image: ''}) // Assuming no image edit for now
+        openProviderModal('edit', providerId);
             });
             if (result) {
                 populateProviders();
@@ -611,17 +723,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Selecione um prestador para excluir.');
             return;
         }
-        if (confirm('Tem certeza que deseja excluir este prestador?')) {
-            const result = await fetchData(`${API_URL}/providers/${providerId}`, {
-                method: 'DELETE'
-            });
-            if (result) {
-                populateProviders();
-                providerSelect.value = '';
-                showProviderProcedures('', '');
-                showAdditionalProviderProcedures('', '');
-            }
-        }
+        openConfirmModal(providerId);
     });
 
     addProviderProcedureBtn.addEventListener('click', async () => {
