@@ -5,10 +5,26 @@ const cors = require('cors');
 const path = require('path');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'sistema-procedimentos-secret-key-2024';
+
+// Trust proxy for Vercel environment
+app.set('trust proxy', true);
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  keyGenerator: (req) => {
+    // Use X-Forwarded-For header to get real client IP on Vercel
+    const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    return clientIp;
+  }
+});
+app.use(limiter);
 
 // Middleware
 app.use(cors());
@@ -46,7 +62,7 @@ app.get('/login', (req, res) => {
 // Database
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false, sslmode: 'verify-full' } : false,
 });
 
 // Initialize database
