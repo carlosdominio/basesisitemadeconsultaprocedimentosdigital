@@ -116,10 +116,28 @@
                 <span class="close">&times;</span>
                 <h2 id="modalTitle">Adicionar Procedimento</h2>
             </div>
+            <div class="modal-toolbar">
+                <select id="fontSizeSelect">
+                    <option value="12">12px</option>
+                    <option value="14">14px</option>
+                    <option value="16" selected>16px</option>
+                    <option value="18">18px</option>
+                    <option value="20">20px</option>
+                    <option value="24">24px</option>
+                </select>
+                <input type="color" id="fontColorSelect" value="#000000">
+                <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+                <button id="imageUploadBtn">Upload de Imagem</button>
+                <input type="text" id="imageUrlInput" placeholder="URL da imagem" style="flex: 1;">
+            </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label for="modalInput">Texto do Procedimento</label>
                     <textarea id="modalInput" placeholder="Digite o texto do procedimento" rows="4"></textarea>
+                </div>
+                <div class="form-group" id="imagePreviewContainer" style="display: none;">
+                    <label>Pré-visualização da Imagem</label>
+                    <img id="imagePreview" src="" alt="Pré-visualização" style="max-width: 100%; max-height: 300px;">
                 </div>
             </div>
             <div class="modal-footer">

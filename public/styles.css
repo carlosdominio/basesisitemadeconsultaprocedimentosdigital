@@ -265,6 +265,53 @@ li.dragging {
     margin: 5px 0;
 }
 
+/* Modal toolbar */
+.modal-toolbar {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+    align-items: center;
+}
+
+.modal-toolbar select,
+.modal-toolbar input[type="color"],
+.modal-toolbar input[type="text"],
+.modal-toolbar button {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.modal-toolbar select {
+    min-width: 100px;
+}
+
+.modal-toolbar input[type="color"] {
+    width: 50px;
+    height: 38px;
+    padding: 2px;
+}
+
+.modal-toolbar input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+}
+
+.modal-toolbar button {
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.modal-toolbar button:hover {
+    background-color: #0056b3;
+}
+
 /* Modal */
 .modal {
     display: none;

@@ -398,21 +398,74 @@ function openConfirmModal(providerId) {
 function showModal(title, initialValue, callback) {
     modalTitle.textContent = title;
     modalInput.value = initialValue || '';
+    
+    // Reset form elements
+    fontSizeSelect.value = '16';
+    fontColorSelect.value = '#000000';
+    imageUrlInput.value = '';
+    imageFileInput.value = '';
+    imagePreviewContainer.style.display = 'none';
+    imagePreview.src = '';
+    
     modal.style.display = 'block';
     modalInput.focus();
+    
     modalSave.onclick = () => {
         const value = modalInput.value.trim();
         if (value) {
-            callback(value);
+            // Apply formatting
+            const fontSize = fontSizeSelect.value;
+            const fontColor = fontColorSelect.value;
+            const imageUrl = imageUrlInput.value.trim();
+            
+            let formattedText = `<span style="font-size: ${fontSize}px; color: ${fontColor};">${value}</span>`;
+            
+            if (imageUrl) {
+                formattedText += `<br><img src="${imageUrl}" alt="Imagem" style="max-width: 100%; max-height: 300px; margin-top: 10px;">`;
+            }
+            
+            callback(formattedText);
             modal.style.display = 'none';
         }
     };
+    
     modalCancel.onclick = () => {
         modal.style.display = 'none';
     };
+    
     close.onclick = () => {
         modal.style.display = 'none';
     };
+    
+    // Image upload functionality
+    imageUploadBtn.addEventListener('click', () => {
+        imageFileInput.click();
+    });
+    
+    imageFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const dataURL = event.target.result;
+                imageUrlInput.value = dataURL;
+                imagePreview.src = dataURL;
+                imagePreviewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    imageUrlInput.addEventListener('input', () => {
+        const url = imageUrlInput.value.trim();
+        if (url) {
+            imagePreview.src = url;
+            imagePreviewContainer.style.display = 'block';
+        } else {
+            imagePreviewContainer.style.display = 'none';
+            imagePreview.src = '';
+        }
+    });
 }
 
 // Provider modal close events
