@@ -403,6 +403,7 @@ function showModal(title, initialValue, callback) {
     let fontSize = '16';
     let fontColor = '#000000';
     let imageUrl = '';
+    let imageSize = 'medium';
     let bold = false;
     let italic = false;
     let underline = false;
@@ -440,19 +441,34 @@ function showModal(title, initialValue, callback) {
             text = tempDiv.textContent;
         }
         
-        // Extract image URL
+        // Extract image URL and size
         const imgElements = tempDiv.querySelectorAll('img');
         if (imgElements.length > 0) {
             imageUrl = imgElements[0].src;
+            
+            // Extract image size from style
+            const imgStyle = imgElements[0].style;
+            if (imgStyle.maxWidth) {
+                if (imgStyle.maxWidth.includes('25%')) {
+                    imageSize = 'small';
+                } else if (imgStyle.maxWidth.includes('50%')) {
+                    imageSize = 'medium';
+                } else if (imgStyle.maxWidth.includes('75%')) {
+                    imageSize = 'large';
+                } else {
+                    imageSize = 'original';
+                }
+            }
         }
     }
     
     // Set form values
-    modalInput.value = text;
+    modalInput.innerText = text;
     fontSizeSelect.value = fontSize;
     fontColorSelect.value = fontColor;
     imageUrlInput.value = imageUrl;
     imageFileInput.value = '';
+    imageSizeSelect.value = imageSize;
     
     // Toggle button states
     boldBtn.classList.toggle('active', bold);
@@ -462,6 +478,8 @@ function showModal(title, initialValue, callback) {
     // Show/hide image preview
     if (imageUrl) {
         imagePreview.src = imageUrl;
+        // Apply image size to preview
+        updateImageSizePreview();
         imagePreviewContainer.style.display = 'block';
     } else {
         imagePreviewContainer.style.display = 'none';
@@ -487,6 +505,29 @@ function showModal(title, initialValue, callback) {
         modalInput.style.cssText = style;
     }
     
+    // Update image size preview
+    function updateImageSizePreview() {
+        const size = imageSizeSelect.value;
+        switch (size) {
+            case 'small':
+                imagePreview.style.maxWidth = '25%';
+                imagePreview.style.maxHeight = '150px';
+                break;
+            case 'medium':
+                imagePreview.style.maxWidth = '50%';
+                imagePreview.style.maxHeight = '300px';
+                break;
+            case 'large':
+                imagePreview.style.maxWidth = '75%';
+                imagePreview.style.maxHeight = '450px';
+                break;
+            case 'original':
+                imagePreview.style.maxWidth = '100%';
+                imagePreview.style.maxHeight = '600px';
+                break;
+        }
+    }
+    
     // Event listeners for formatting buttons
     boldBtn.addEventListener('click', () => {
         boldBtn.classList.toggle('active');
@@ -505,9 +546,10 @@ function showModal(title, initialValue, callback) {
     
     fontSizeSelect.addEventListener('change', applyFormatting);
     fontColorSelect.addEventListener('change', applyFormatting);
+    imageSizeSelect.addEventListener('change', updateImageSizePreview);
     
     modalSave.onclick = () => {
-        const value = modalInput.value.trim();
+        const value = modalInput.innerText.trim();
         if (value) {
             // Apply formatting
             const selectedFontSize = fontSizeSelect.value;
@@ -516,6 +558,7 @@ function showModal(title, initialValue, callback) {
             const isItalic = italicBtn.classList.contains('active');
             const isUnderline = underlineBtn.classList.contains('active');
             const selectedImageUrl = imageUrlInput.value.trim();
+            const selectedImageSize = imageSizeSelect.value;
             
             let style = `font-size: ${selectedFontSize}px; color: ${selectedFontColor};`;
             if (isBold) style += ' font-weight: bold;';
@@ -525,7 +568,23 @@ function showModal(title, initialValue, callback) {
             let formattedText = `<span style="${style}">${value}</span>`;
             
             if (selectedImageUrl) {
-                formattedText += `<br><img src="${selectedImageUrl}" alt="Imagem" style="max-width: 100%; max-height: 300px; margin-top: 10px;">`;
+                let imgStyle = 'margin-top: 10px;';
+                switch (selectedImageSize) {
+                    case 'small':
+                        imgStyle += ' max-width: 25%; max-height: 150px;';
+                        break;
+                    case 'medium':
+                        imgStyle += ' max-width: 50%; max-height: 300px;';
+                        break;
+                    case 'large':
+                        imgStyle += ' max-width: 75%; max-height: 450px;';
+                        break;
+                    case 'original':
+                        imgStyle += ' max-width: 100%; max-height: 600px;';
+                        break;
+                }
+                
+                formattedText += `<br><img src="${selectedImageUrl}" alt="Imagem" style="${imgStyle}">`;
             }
             
             callback(formattedText);
