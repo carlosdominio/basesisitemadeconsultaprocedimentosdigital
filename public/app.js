@@ -631,6 +631,13 @@ function showModal(title, initialValue, callback) {
     });
     
     // Apply initial formatting
+    console.log('Applying initial formatting');
+    console.log('Font size select value:', fontSizeSelect.value);
+    console.log('Font color select value:', fontColorSelect.value);
+    console.log('Bold button active:', boldBtn.classList.contains('active'));
+    console.log('Italic button active:', italicBtn.classList.contains('active'));
+    console.log('Underline button active:', underlineBtn.classList.contains('active'));
+    
     applyFormatting();
 }
 
