@@ -397,15 +397,57 @@ function openConfirmModal(providerId) {
 // --- Funções de Modal para Procedimentos ---
 function showModal(title, initialValue, callback) {
     modalTitle.textContent = title;
-    modalInput.value = initialValue || '';
     
-    // Reset form elements
-    fontSizeSelect.value = '16';
-    fontColorSelect.value = '#000000';
-    imageUrlInput.value = '';
+    // Parse initial HTML to extract text, font size, color, and image URL
+    let text = '';
+    let fontSize = '16';
+    let fontColor = '#000000';
+    let imageUrl = '';
+    
+    if (initialValue) {
+        // Extract text
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = initialValue;
+        const textElements = tempDiv.querySelectorAll('span');
+        if (textElements.length > 0) {
+            text = textElements[0].textContent;
+            
+            // Extract font size
+            const style = textElements[0].style;
+            if (style.fontSize) {
+                fontSize = style.fontSize.replace('px', '');
+            }
+            
+            // Extract font color
+            if (style.color) {
+                fontColor = style.color;
+            }
+        } else {
+            text = tempDiv.textContent;
+        }
+        
+        // Extract image URL
+        const imgElements = tempDiv.querySelectorAll('img');
+        if (imgElements.length > 0) {
+            imageUrl = imgElements[0].src;
+        }
+    }
+    
+    // Set form values
+    modalInput.value = text;
+    fontSizeSelect.value = fontSize;
+    fontColorSelect.value = fontColor;
+    imageUrlInput.value = imageUrl;
     imageFileInput.value = '';
-    imagePreviewContainer.style.display = 'none';
-    imagePreview.src = '';
+    
+    // Show/hide image preview
+    if (imageUrl) {
+        imagePreview.src = imageUrl;
+        imagePreviewContainer.style.display = 'block';
+    } else {
+        imagePreviewContainer.style.display = 'none';
+        imagePreview.src = '';
+    }
     
     modal.style.display = 'block';
     modalInput.focus();
@@ -414,14 +456,14 @@ function showModal(title, initialValue, callback) {
         const value = modalInput.value.trim();
         if (value) {
             // Apply formatting
-            const fontSize = fontSizeSelect.value;
-            const fontColor = fontColorSelect.value;
-            const imageUrl = imageUrlInput.value.trim();
+            const selectedFontSize = fontSizeSelect.value;
+            const selectedFontColor = fontColorSelect.value;
+            const selectedImageUrl = imageUrlInput.value.trim();
             
-            let formattedText = `<span style="font-size: ${fontSize}px; color: ${fontColor};">${value}</span>`;
+            let formattedText = `<span style="font-size: ${selectedFontSize}px; color: ${selectedFontColor};">${value}</span>`;
             
-            if (imageUrl) {
-                formattedText += `<br><img src="${imageUrl}" alt="Imagem" style="max-width: 100%; max-height: 300px; margin-top: 10px;">`;
+            if (selectedImageUrl) {
+                formattedText += `<br><img src="${selectedImageUrl}" alt="Imagem" style="max-width: 100%; max-height: 300px; margin-top: 10px;">`;
             }
             
             callback(formattedText);
