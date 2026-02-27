@@ -403,6 +403,9 @@ function showModal(title, initialValue, callback) {
     let fontSize = '16';
     let fontColor = '#000000';
     let imageUrl = '';
+    let bold = false;
+    let italic = false;
+    let underline = false;
     
     if (initialValue) {
         // Extract text
@@ -422,6 +425,17 @@ function showModal(title, initialValue, callback) {
             if (style.color) {
                 fontColor = style.color;
             }
+            
+            // Extract formatting
+            if (textElements[0].style.fontWeight === 'bold') {
+                bold = true;
+            }
+            if (textElements[0].style.fontStyle === 'italic') {
+                italic = true;
+            }
+            if (textElements[0].style.textDecoration === 'underline') {
+                underline = true;
+            }
         } else {
             text = tempDiv.textContent;
         }
@@ -440,6 +454,11 @@ function showModal(title, initialValue, callback) {
     imageUrlInput.value = imageUrl;
     imageFileInput.value = '';
     
+    // Toggle button states
+    boldBtn.classList.toggle('active', bold);
+    italicBtn.classList.toggle('active', italic);
+    underlineBtn.classList.toggle('active', underline);
+    
     // Show/hide image preview
     if (imageUrl) {
         imagePreview.src = imageUrl;
@@ -452,15 +471,58 @@ function showModal(title, initialValue, callback) {
     modal.style.display = 'block';
     modalInput.focus();
     
+    // Apply real-time formatting to preview
+    function applyFormatting() {
+        const selectedFontSize = fontSizeSelect.value;
+        const selectedFontColor = fontColorSelect.value;
+        const isBold = boldBtn.classList.contains('active');
+        const isItalic = italicBtn.classList.contains('active');
+        const isUnderline = underlineBtn.classList.contains('active');
+        
+        let style = `font-size: ${selectedFontSize}px; color: ${selectedFontColor};`;
+        if (isBold) style += ' font-weight: bold;';
+        if (isItalic) style += ' font-style: italic;';
+        if (isUnderline) style += ' text-decoration: underline;';
+        
+        modalInput.style.cssText = style;
+    }
+    
+    // Event listeners for formatting buttons
+    boldBtn.addEventListener('click', () => {
+        boldBtn.classList.toggle('active');
+        applyFormatting();
+    });
+    
+    italicBtn.addEventListener('click', () => {
+        italicBtn.classList.toggle('active');
+        applyFormatting();
+    });
+    
+    underlineBtn.addEventListener('click', () => {
+        underlineBtn.classList.toggle('active');
+        applyFormatting();
+    });
+    
+    fontSizeSelect.addEventListener('change', applyFormatting);
+    fontColorSelect.addEventListener('change', applyFormatting);
+    
     modalSave.onclick = () => {
         const value = modalInput.value.trim();
         if (value) {
             // Apply formatting
             const selectedFontSize = fontSizeSelect.value;
             const selectedFontColor = fontColorSelect.value;
+            const isBold = boldBtn.classList.contains('active');
+            const isItalic = italicBtn.classList.contains('active');
+            const isUnderline = underlineBtn.classList.contains('active');
             const selectedImageUrl = imageUrlInput.value.trim();
             
-            let formattedText = `<span style="font-size: ${selectedFontSize}px; color: ${selectedFontColor};">${value}</span>`;
+            let style = `font-size: ${selectedFontSize}px; color: ${selectedFontColor};`;
+            if (isBold) style += ' font-weight: bold;';
+            if (isItalic) style += ' font-style: italic;';
+            if (isUnderline) style += ' text-decoration: underline;';
+            
+            let formattedText = `<span style="${style}">${value}</span>`;
             
             if (selectedImageUrl) {
                 formattedText += `<br><img src="${selectedImageUrl}" alt="Imagem" style="max-width: 100%; max-height: 300px; margin-top: 10px;">`;
@@ -508,6 +570,9 @@ function showModal(title, initialValue, callback) {
             imagePreview.src = '';
         }
     });
+    
+    // Apply initial formatting
+    applyFormatting();
 }
 
 // Provider modal close events
